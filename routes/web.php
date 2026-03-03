@@ -11,3 +11,7 @@ Route::get('/', function () {
 Route::get('/annuaire', function () {
     return view('annuaire');
 });
+
+Route::get('/planning', function () {
+    return view('planning');
+});

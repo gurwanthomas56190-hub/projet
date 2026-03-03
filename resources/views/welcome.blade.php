@@ -15,9 +15,9 @@
     </header>
 
     <nav>
-        <a href="#">Accueil</a>
+        <a href="{{ url('/') }}">Accueil</a>
         <a href="#">Actualités</a>
-        <a href="#">Annuaire</a>
+        <a href="{{ url('/annuaire') }}">Annuaire</a>
         <a href="#">Documents RH</a>
         <a href="#">Support Informatique</a>
     </nav>
@@ -38,7 +38,7 @@
             <div class="card">
                 <h2>🛠️ Liens Rapides</h2>
                 <ul class="quick-links">
-                    <li><a href="#">🗓️ Planning des congés</a></li>
+                    <li><a href="{{ url('/planning') }}">🗓️ Planning des congés</a></li>
                     <li><a href="#">📁 Serveur de fichiers</a></li>
                     <li><a href="#">🆘 Créer un ticket IT</a></li>
                 </ul>

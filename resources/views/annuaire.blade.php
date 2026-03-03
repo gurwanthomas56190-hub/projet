@@ -15,7 +15,7 @@
 <body>
 
     <header>
-        <h1>MonEntreprise - Intranet</h1>
+        <h1>Silvadec</h1>
         <div>Bienvenue, Collaborateur</div>
     </header>
 
