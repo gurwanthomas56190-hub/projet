@@ -10,7 +10,7 @@
 <body>
 
     <header>
-        <h1>MonEntreprise - Intranet</h1>
+        <h1>Silvadec</h1>
         <div>Bienvenue, Collaborateur</div>
     </header>
 
@@ -38,7 +38,6 @@
             <div class="card">
                 <h2>🛠️ Liens Rapides</h2>
                 <ul class="quick-links">
-                    <li><a href="#">📩 Webmail</a></li>
                     <li><a href="#">🗓️ Planning des congés</a></li>
                     <li><a href="#">📁 Serveur de fichiers</a></li>
                     <li><a href="#">🆘 Créer un ticket IT</a></li>

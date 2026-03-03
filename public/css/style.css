@@ -10,7 +10,7 @@ body {
 
 /* En-tête (Header) */
 header { 
-    background-color: #0056b3; 
+    background-color: #23344a; 
     color: white; 
     padding: 1.5rem 2rem; 
     display: flex;
@@ -21,7 +21,7 @@ header h1 { margin: 0; font-size: 1.8rem; }
 
 /* Barre de navigation */
 nav {
-    background-color: #004494;
+    background-color: #23344a;
     padding: 0.8rem 2rem;
 }
 nav a {
