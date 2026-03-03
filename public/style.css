@@ -1,0 +1,88 @@
+/* Fichier : public/css/style.css */
+
+/* Style général */
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    margin: 0; 
+    background-color: #f0f2f5; 
+    color: #333; 
+}
+
+/* En-tête (Header) */
+header { 
+    background-color: #0056b3; 
+    color: white; 
+    padding: 1.5rem 2rem; 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+header h1 { margin: 0; font-size: 1.8rem; }
+
+/* Barre de navigation */
+nav {
+    background-color: #004494;
+    padding: 0.8rem 2rem;
+}
+nav a {
+    color: white;
+    text-decoration: none;
+    margin-right: 1.5rem;
+    font-weight: bold;
+}
+nav a:hover { text-decoration: underline; }
+
+/* Conteneur principal */
+.container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr; 
+    gap: 2rem;
+    padding: 0 1rem;
+}
+
+/* Boîtes de contenu */
+.card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+.card h2 {
+    margin-top: 0;
+    color: #0056b3;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+/* Liste de liens rapides */
+.quick-links {
+    list-style: none;
+    padding: 0;
+}
+.quick-links li {
+    margin-bottom: 0.8rem;
+}
+.quick-links a {
+    text-decoration: none;
+    color: #333;
+    display: block;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #0056b3;
+}
+.quick-links a:hover {
+    background-color: #e2e6ea;
+}
+
+/* Pied de page */
+footer { 
+    text-align: center; 
+    padding: 1.5rem; 
+    background-color: #ddd; 
+    color: #555; 
+    margin-top: 2rem;
+}
