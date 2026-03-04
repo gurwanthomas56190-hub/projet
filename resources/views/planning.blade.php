@@ -77,32 +77,11 @@
           // Voici les horaires de travail avec heures de début et fin
           events: [
             {
-              title: 'Alice (Développement)',
-              daysOfWeek: [1, 2, 3, 4, 5], // 1=Lundi ... 5=Vendredi
-              startTime: '09:00', // Heure de début
-              endTime: '17:30',   // Heure de fin
-              color: '#28a745'    // Vert
-            },
-            {
-              title: 'Bob (Support IT)',
+              title: 'Mon planning ({{ Auth::user()->name }})',
               daysOfWeek: [1, 2, 3, 4, 5],
-              startTime: '08:00',
-              endTime: '16:00',
-              color: '#0056b3'    // Bleu
-            },
-            {
-              title: 'Charlie (Accueil)',
-              daysOfWeek: [1, 3, 5], // Ne travaille que Lundi, Mercredi, Vendredi
               startTime: '08:30',
-              endTime: '12:30',
-              color: '#17a2b8'    // Bleu clair
-            },
-            {
-              title: 'Réunion d\'équipe',
-              daysOfWeek: [1], // Seulement le Lundi
-              startTime: '10:00',
-              endTime: '11:00',
-              color: '#dc3545'    // Rouge
+              endTime: '17:00',
+              color: '#28a745'
             }
           ]
         });
