@@ -7,36 +7,37 @@
     <main>
         <div class="card">
             <h2>📞 Annuaire des collaborateurs</h2>
-            <p>Retrouvez facilement les coordonnées de vos collègues.</p>
+            <p>Retrouvez facilement les coordonnées de vos collègues (données synchronisées avec l'Active Directory).</p>
             
             <table class="styled-table">
                 <thead>
                     <tr>
                         <th>Nom & Prénom</th>
-                        <th>Service</th>
-                        <th>Poste interne</th>
+                        <th>Service / Département</th>
+                        <th>Téléphone</th>
                         <th>Email</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td><strong>Alice Dupont</strong></td>
-                        <td>Ressources Humaines</td>
-                        <td>205</td>
-                        <td>alice.d@silvadec.com</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Bob Martin</strong></td>
-                        <td>Support Informatique</td>
-                        <td>404</td>
-                        <td>bob.m@silvadec.com</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Charlie Leblanc</strong></td>
-                        <td>Comptabilité</td>
-                        <td>301</td>
-                        <td>charlie.l@silvadec.com</td>
-                    </tr>
+                    @forelse($users as $user)
+                        <tr>
+                            <td><strong>{{ $user->getFirstAttribute('cn') ?? 'Nom inconnu' }}</strong></td>
+                            
+                            <td>{{ $user->getFirstAttribute('department') ?? 'Non renseigné' }}</td>
+                            
+                            <td>{{ $user->getFirstAttribute('telephonenumber') ?? '-' }}</td>
+                            
+                            <td>
+                                <a href="mailto:{{ $user->getFirstAttribute('mail') }}">
+                                    {{ $user->getFirstAttribute('mail') }}
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" style="text-align: center;">Aucun utilisateur trouvé dans l'Active Directory.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
