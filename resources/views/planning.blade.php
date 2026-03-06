@@ -19,17 +19,32 @@
 </head>
 <body>
 
-    <header>
-        <h1>MonEntreprise - Intranet</h1>
-        <div>Bienvenue, Collaborateur</div>
-    </header>
+<header class="intranet-header">
+    <div class="header-top">
+        <div class="logo-area">
+            <h1>MonEntreprise - Intranet</h1>
+        </div>
+        
+        <div class="user-area">
+            @auth
+                <span class="welcome-text">Bienvenue, {{ Auth::user()->getFirstAttribute('cn') }}</span>
+                <form action="{{ route('logout') }}" method="POST" class="logout-form">
+                    @csrf
+                    <button type="submit" class="logout-button">Se déconnecter</button>
+                </form>
+            @endauth
+        </div>
+    </div>
 
-    <nav>
-        <a href="{{ url('/') }}">Accueil</a>
-        <a href="#">Actualités</a>
-        <a href="{{ url('/annuaire') }}">Annuaire</a>
-        <a href="#">Support Informatique</a>
+    <nav class="main-nav">
+        <ul>
+            <li><a href="{{ url('/') }}" class="{{ Request::is('/') ? 'active' : '' }}">Accueil</a></li>
+            <li><a href="#">Actualités</a></li>
+            <li><a href="{{ url('/annuaire') }}" class="{{ Request::is('annuaire') ? 'active' : '' }}">Annuaire</a></li>
+            <li><a href="#">Support Informatique</a></li>
+        </ul>
     </nav>
+</header>
 
     <div class="container" style="grid-template-columns: 1fr;">
         <main>
@@ -77,7 +92,7 @@
           // Voici les horaires de travail avec heures de début et fin
           events: [
             {
-              title: 'Mon planning ({{ Auth::user()->name }})',
+              title: 'Mon planning ({{ Auth::user()->getFirstAttribute("name") }})',
               daysOfWeek: [1, 2, 3, 4, 5],
               startTime: '08:30',
               endTime: '17:00',

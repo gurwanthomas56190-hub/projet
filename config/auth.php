@@ -61,17 +61,11 @@ return [
 
     'providers' => [
     'users' => [
-        'driver' => 'ldap', // Changé de 'eloquent' à 'ldap'
-        'model' => App\Ldap\User::class,
-        'rules' => [],
-        'database' => [
-            'model' => App\Models\User::class,
-            'sync_attributes' => [
-                'name' => 'cn',
-                'email' => 'mail',
+        'driver' => 'ldap',
+        // Utilise directement le modèle LDAP d'Active Directory
+        'model' => LdapRecord\Models\ActiveDirectory\User::class,
                 // Ajoute ici la colonne si tu en as une pour le samaccountname
-                ],
-            ],
+            
         ],
     ],
 
