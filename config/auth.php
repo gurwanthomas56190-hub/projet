@@ -60,15 +60,19 @@ return [
     */
 
     'providers' => [
-        'users' => [
-            'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+    'users' => [
+        'driver' => 'ldap', // Changé de 'eloquent' à 'ldap'
+        'model' => App\Ldap\User::class,
+        'rules' => [],
+        'database' => [
+            'model' => App\Models\User::class,
+            'sync_attributes' => [
+                'name' => 'cn',
+                'email' => 'mail',
+                // Ajoute ici la colonne si tu en as une pour le samaccountname
+                ],
+            ],
         ],
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
     ],
 
     /*
