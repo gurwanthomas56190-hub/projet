@@ -11,15 +11,19 @@ Route::get('/', function () {
 
 // NOUVELLE ROUTE : La page Annuaire
 Route::get('/annuaire', function () {
-    // On récupère les utilisateurs de l'AD.
-    // Le filtre "whereHas('mail')" est une astuce très utile : 
-    // ça évite d'afficher les comptes systèmes de Windows (Administrateur, Invité, etc.)
-    $users = LdapUser::whereHas('mail')->sortBy('cn')->get();
+    // 1. On récupère les utilisateurs avec get()
+    // 2. Ensuite on trie la collection avec sortBy()
+    $users = LdapUser::whereHas('mail')->get()->sortBy(function($user) {
+        // On trie alphabétiquement en utilisant le texte du Common Name (cn)
+        return $user->getFirstAttribute('cn'); 
+    });
 
     return view('annuaire', [
         'users' => $users
     ]);
 })->middleware('auth');
+
+
 Route::get('/planning', function () {
     return view('planning');
 });
