@@ -13,6 +13,7 @@ Route::get('/', function () {
 Route::get('/annuaire', function () {
     // 1. On récupère les utilisateurs avec get()
     // 2. Ensuite on trie la collection avec sortBy()
+    
     $users = LdapUser::whereHas('mail')->get()->sortBy(function($user) {
         // On trie alphabétiquement en utilisant le texte du Common Name (cn)
         return $user->getFirstAttribute('cn'); 
