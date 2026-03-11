@@ -13,9 +13,11 @@
                 <thead>
                     <tr>
                         <th>Nom & Prénom</th>
-                        <th>Service / Département</th>
                         <th>Téléphone</th>
+                        <th>Service</th> 
+                        <th>Site</th>
                         <th>Email</th>
+                        <th>adresse</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -23,15 +25,16 @@
                         <tr>
                             <td><strong>{{ $user->getFirstAttribute('cn') ?? 'Nom inconnu' }}</strong></td>
                             
-                            <td>{{ $user->getFirstAttribute('department') ?? 'Non renseigné' }}</td>
                             
                             <td>{{ $user->getFirstAttribute('telephonenumber') ?? '-' }}</td>
-                            
+                            <td>{{ $user->getSite() }}</td>
+                            <td>{{ $user->getService() }}</td>
                             <td>
                                 <a href="mailto:{{ $user->getFirstAttribute('mail') }}">
                                     {{ $user->getFirstAttribute('mail') }}
-                                </a>
+                                </a>   
                             </td>
+                            <td>{{ $user->getFirstAttribute('streetaddress') ?? '-' }}</td>
                         </tr>
                     @empty
                         <tr>

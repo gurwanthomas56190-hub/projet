@@ -28,6 +28,10 @@ Route::get('/annuaire', function () {
 Route::get('/planning', function () {
     return view('planning');
 });
+Route::get('/support_informatique', function () {
+    // Affiche les données du premier utilisateur avec un email directement sur la page web
+    dd( App\Ldap\User::whereHas('mail')->first()->getAttributes() ); 
+});
 
 
 

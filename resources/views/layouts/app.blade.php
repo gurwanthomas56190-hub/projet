@@ -31,7 +31,7 @@
                 <li><a href="#">Actualités</a></li>
                 <li><a href="{{ url('/annuaire') }}" class="{{ Request::is('annuaire') ? 'active' : '' }}">Annuaire</a></li>
                 <li><a href="{{ url('/planning') }}" class="{{ Request::is('planning') ? 'active' : '' }}">Planning</a></li>
-                <li><a href="#">Support Informatique</a></li>
+                <li><a href="{{ url('/support_informatique') }}" class="{{ Request::is('planning') ? 'active' : '' }}">Support Informatique</a></li>
             </ul>
         </nav>
     </header>
