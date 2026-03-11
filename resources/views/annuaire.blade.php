@@ -14,10 +14,13 @@
                     <tr>
                         <th>Nom & Prénom</th>
                         <th>Téléphone</th>
-                        <th>Service</th> 
-                        <th>Site</th>
+                        
                         <th>Email</th>
                         <th>adresse</th>
+                        <th>Service</th> 
+                        <th>Site</th>
+                        
+                        
                     </tr>
                 </thead>
                 <tbody>
@@ -27,15 +30,17 @@
                             
                             
                             <td>{{ $user->getFirstAttribute('telephonenumber') ?? '-' }}</td>
-                            <td>{{ $user->getSite() }}</td>
-                            <td>{{ $user->getService() }}</td>
+                            
                             <td>
                                 <a href="mailto:{{ $user->getFirstAttribute('mail') }}">
                                     {{ $user->getFirstAttribute('mail') }}
                                 </a>   
                             </td>
                             <td>{{ $user->getFirstAttribute('streetaddress') ?? '-' }}</td>
+                            <td>{{ $user->getService() }}</td>
+                            <td>{{ $user->getSite() }}</td>                           
                         </tr>
+                        
                     @empty
                         <tr>
                             <td colspan="4" style="text-align: center;">Aucun utilisateur trouvé dans l'Active Directory.</td>
