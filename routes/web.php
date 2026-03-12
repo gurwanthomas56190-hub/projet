@@ -28,12 +28,16 @@ Route::get('/annuaire', function () {
 Route::get('/planning', function () {
     return view('planning');
 });
+
 Route::get('/support_informatique', function () {
     // Affiche les données du premier utilisateur avec un email directement sur la page web
     dd( App\Ldap\User::whereHas('mail')->first()->getAttributes() ); 
 });
 
-
+Route::get('/support_informatique', function () {
+    // Affiche les données du premier utilisateur avec un email directement sur la page web
+    dd( App\Ldap\User::whereHas('mail')->first()->getAttributes() ); 
+})->middleware('auth');
 
 // Pages de connexion
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');

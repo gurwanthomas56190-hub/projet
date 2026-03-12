@@ -59,6 +59,15 @@ return [
             'throw' => false,
             'report' => false,
         ],
+        'nas' => [
+        'driver' => 'local',
+        // Si Laravel est sur Linux, montez le partage SMB dans /mnt/win_share
+        // Si Laravel est sur Windows, utilisez le chemin UNC ou la lettre de lecteur
+        'root' => env('NAS_DISK_ROOT', '/mnt/win_share'), 
+        'serve' => true,
+        'throw' => true,
+        'report' => false,
+    ],
 
     ],
 
