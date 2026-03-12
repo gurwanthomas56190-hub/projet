@@ -7,7 +7,7 @@ use App\Ldap\User as LdapUser;
 // Route de la page d'accueil
 Route::get('/', function () {
     return view('welcome');
-});
+})->middleware('auth');
 
 // NOUVELLE ROUTE : La page Annuaire
 Route::get('/annuaire', function () {
