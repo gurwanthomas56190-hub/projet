@@ -3,6 +3,8 @@
 @section('content')
 <div class="container mt-4">
     <div class="card shadow">
+        
+        {{-- 1. L'EN-TÊTE (HEADER) --}}
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0">📁 Gestionnaire de fichiers</h4>
             <span class="badge bg-light text-dark">
@@ -12,33 +14,53 @@
         </div>
         
         <div class="card-body">
-            <h5>Dossier actuel : <strong>{{ $currentFolder }}</strong></h5>
+            
+            {{-- 2. NAVIGATION ET CHEMIN ACTUEL --}}
+            <h5 class="mb-3">Dossier actuel : <strong>{{ $currentFolder }}</strong></h5>
+
+            {{-- Bouton pour remonter au dossier parent (s'affiche uniquement si on n'est pas à la racine) --}}
+            @if($safeRelativePath)
+                <a href="{{ route('files.index', ['path' => $parentPath]) }}" class="btn btn-secondary mb-3">
+                    ⬆️ Dossier parent
+                </a>
+            @endif
+
             <hr>
 
-            <ul class="list-group">
-                {{-- Affichage des Sous-Dossiers --}}
-                @forelse($folders as $folder)
-                    <li class="list-group-item list-group-item-warning">
+            <div class="list-group">
+                
+                {{-- 3. AFFICHAGE DES SOUS-DOSSIERS --}}
+                @foreach($folders as $folder)
+                    @php
+                        // On construit le lien correct pour entrer dans le dossier
+                        $newRelativePath = $safeRelativePath ? $safeRelativePath . '/' . basename($folder) : basename($folder);
+                    @endphp
+                    
+                    <a href="{{ route('files.index', ['path' => $newRelativePath]) }}" class="list-group-item list-group-item-action list-group-item-warning font-weight-bold">
                         🗂️ {{ basename($folder) }}
-                    </li>
-                @empty
-                    <p class="text-muted">Aucun sous-dossier.</p>
-                @endforelse
-            </ul>
+                    </a>
+                @endforeach
 
-            <ul class="list-group mt-3">
-                {{-- Affichage des Fichiers --}}
-                @forelse($files as $file)
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{-- 4. AFFICHAGE DES FICHIERS --}}
+                @foreach($files as $file)
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
                         <span>📄 {{ basename($file) }}</span>
+                        
+                        {{-- Bouton de téléchargement --}}
                         <a href="{{ route('files.download', ['path' => $file]) }}" class="btn btn-sm btn-success">
                             ⬇️ Télécharger
                         </a>
-                    </li>
-                @empty
-                    <li class="list-group-item text-muted">Aucun fichier dans ce dossier.</li>
-                @endforelse
-            </ul>
+                    </div>
+                @endforeach
+
+                {{-- 5. CAS OÙ LE DOSSIER EST VIDE --}}
+                @if(empty($folders) && empty($files))
+                    <div class="list-group-item text-muted text-center py-4">
+                        Ce dossier est vide.
+                    </div>
+                @endif
+
+            </div>
         </div>
     </div>
 </div>

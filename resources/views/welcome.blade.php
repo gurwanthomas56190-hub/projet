@@ -20,7 +20,7 @@
             <h2>🛠️ Liens Rapides</h2>
             <ul class="quick-links">
                 <li><a href="{{ url('/planning') }}">🗓️ Planning des congés</a></li>
-                <li><a href="{{ url('/fichiers') }}">📁 Serveur de fichiers</a></li>
+                <li><a href="{{ route('files.index') }}">📁 Serveur de fichiers</a></li>
                 <li><a href="#">🆘 Créer un ticket IT</a></li>
             </ul>
         </div>

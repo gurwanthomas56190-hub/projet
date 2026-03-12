@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 class FileManagerController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user(); 
 
@@ -16,36 +16,61 @@ class FileManagerController extends Controller
             return redirect('/login');
         }
 
-        // On récupère le nom du service grâce à ta super fonction !
-        $userService = $user->getService(); // ex: "Informatique", "Administration"...
-
-        $folders = [];
-        $files = [];
-        $currentFolder = 'Racine';
-
-        // Si l'utilisateur est dans l'un de ces services, on lui montre son dossier
+        $userService = $user->getService(); 
         $servicesAutorises = ['Administration', 'Informatique', 'Marketing', 'Production'];
 
-        if (in_array($userService, $servicesAutorises)) {
-            // On liste uniquement le contenu du dossier de SON service
-            $currentFolder = $userService;
-            $folders = Storage::disk('nas')->directories($userService);
-            $files = Storage::disk('nas')->files($userService);
-        } else {
-            // Si le service n'est pas reconnu (ou Admin global), on peut soit bloquer, soit tout afficher.
-            // Ici, on affiche la racine complète par défaut
-            $folders = Storage::disk('nas')->directories();
-            $files = Storage::disk('nas')->files();
+        // On détermine le dossier de base de l'utilisateur
+        $baseFolder = in_array($userService, $servicesAutorises) ? $userService : '';
+
+        // On récupère le chemin demandé dans l'URL
+        $requestedPath = $request->query('path', $baseFolder);
+
+        // SÉCURITÉ : On empêche de remonter dans les dossiers interdits avec "../"
+        $safeRelativePath = str_replace('..', '', (string)$requestedPath);
+
+        // Si l'utilisateur n'est pas admin (il a un baseFolder), on le force à rester dans son dossier
+        if ($baseFolder !== '' && !str_starts_with($safeRelativePath, $baseFolder)) {
+            $safeRelativePath = $baseFolder;
         }
 
-        return view('filemanager', compact('folders', 'files', 'currentFolder', 'userService'));
+        // --- LE CORRECTIF EST ICI ---
+        // $storagePath = Le vrai chemin informatique (vide = la racine du serveur)
+        $storagePath = $safeRelativePath ?: ''; 
+        
+        // $currentFolder = Le joli nom pour l'affichage sur la page web
+        $currentFolder = $safeRelativePath ?: 'Racine'; 
+
+        // Calcul du chemin du dossier parent (pour le bouton Retour)
+        $parentPath = dirname($safeRelativePath);
+        if ($parentPath === '.' || $parentPath === '\\' || $parentPath === '/') {
+            $parentPath = '';
+        }
+
+        // On cache le bouton "Retour" si on est déjà à la racine du service
+        if ($safeRelativePath === $baseFolder || $safeRelativePath === '') {
+            $safeRelativePath = null;
+        }
+
+        // --- DEUXIÈME CORRECTIF ---
+        // On utilise $storagePath au lieu de $currentFolder pour interroger le disque !
+        $folders = Storage::disk('nas')->directories($storagePath);
+        $files = Storage::disk('nas')->files($storagePath);
+
+        // On envoie tout à la vue
+        return view('filemanager', compact(
+            'folders', 
+            'files', 
+            'currentFolder', 
+            'userService', 
+            'safeRelativePath', 
+            'parentPath'
+        ));
     }
 
     public function download(Request $request)
     {
-        $path = $request->query('path'); // Le chemin complet du fichier
+        $path = $request->query('path'); 
         
-        // Petite sécurité basique
         if (!$path || !Storage::disk('nas')->exists($path)) {
             abort(404, "Fichier introuvable.");
         }

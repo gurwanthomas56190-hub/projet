@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Ldap\User as LdapUser;
+use App\Http\Controllers\FileManagerController;
 
 // Route de la page d'accueil
 Route::get('/', function () {
