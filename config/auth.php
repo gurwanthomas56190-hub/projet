@@ -63,7 +63,7 @@ return [
     'users' => [
         'driver' => 'ldap',
         // Utilise directement le modèle LDAP d'Active Directory
-        'model' => LdapRecord\Models\ActiveDirectory\User::class,
+        'model' => App\Ldap\User::class,
                 // Ajoute ici la colonne si tu en as une pour le samaccountname
             
         ],

@@ -48,3 +48,6 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/planning', function () {
     return view('planning');
 })->middleware('auth');
+
+Route::get('/fichiers', [FileManagerController::class, 'index'])->name('files.index')->middleware('auth');
+Route::get('/fichiers/download', [FileManagerController::class, 'download'])->name('files.download')->middleware('auth');
