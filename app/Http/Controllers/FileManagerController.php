@@ -20,7 +20,7 @@ class FileManagerController extends Controller
         $servicesAutorises = ['Administration', 'Informatique', 'Marketing', 'Production'];
 
         // On détermine le dossier de base de l'utilisateur
-        $baseFolder = in_array($userService, $servicesAutorises) ? $userService : '';
+        $baseFolder =  '';
 
         // On récupère le chemin demandé dans l'URL
         $requestedPath = $request->query('path', $baseFolder);
