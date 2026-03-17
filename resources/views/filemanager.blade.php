@@ -1,102 +1,155 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mt-4">
-    <div class="card shadow">
-        
-        {{-- 1. L'EN-TÊTE (HEADER) --}}
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">📁 Gestionnaire de fichiers</h4>
-            <span class="badge bg-light text-dark">
-                Connecté en tant que : {{ Auth::user()->samaccountname[0] ?? 'Inconnu' }} 
-                (Service : {{ $userService }})
-            </span>
+{{-- Importation des icônes professionnelles --}}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    /* Petits ajustements esthétiques */
+    .file-row { transition: background-color 0.2s ease; cursor: default; }
+    .file-row:hover { background-color: #f8f9fa; }
+    .icon-large { font-size: 1.4rem; }
+    .btn-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border-radius: 50%; transition: 0.2s; }
+    .btn-icon:hover { background-color: #e9ecef; }
+    .table-custom th { font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; border-bottom: 2px solid #eee; padding-bottom: 12px;}
+    .table-custom td { border-bottom: 1px solid #f0f0f0; padding: 12px 8px; vertical-align: middle; }
+    .folder-link { text-decoration: none; color: #333; transition: color 0.2s; }
+    .folder-link:hover { color: #0d6efd; }
+</style>
+
+<div class="container mt-5 mb-5">
+    
+    {{-- En-tête épuré --}}
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">Fichiers</h3>
+            <div class="text-muted small">
+                <i class="bi bi-hdd-network me-1"></i> Serveur NAS / <span class="fw-medium text-dark">{{ $currentFolder }}</span>
+            </div>
         </div>
         
-        <div class="card-body">
-            @if(session('success'))
-                <div class="alert alert-success">{{ session('success') }}</div>
-            @endif
-            @if(session('error'))
-                <div class="alert alert-danger">{{ session('error') }}</div>
+        <div class="d-flex gap-2">
+            @if($showBackBtn)
+                <a href="{{ route('files.index', ['path' => $parentPath]) }}" class="btn btn-light border shadow-sm rounded-pill px-3">
+                    <i class="bi bi-arrow-left me-1"></i> Retour
+                </a>
             @endif
             
-            {{-- 2. NAVIGATION ET CHEMIN ACTUEL --}}
-            <h5 class="mb-3">Dossier actuel : <strong>{{ $currentFolder }}</strong></h5>
+            {{-- Bouton d'envoi caché qui déclenche l'explorateur --}}
+            <form action="{{ route('files.store') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
+                @csrf
+                <input type="hidden" name="path" value="{{ $safeRelativePath ?: $userService }}">
+                <input type="file" name="file" id="fileInput" class="d-none" onchange="document.getElementById('uploadForm').submit();">
+                <button type="button" class="btn btn-primary shadow-sm rounded-pill px-4" onclick="document.getElementById('fileInput').click();">
+                    <i class="bi bi-cloud-arrow-up-fill me-2"></i> Uploader
+                </button>
+            </form>
+        </div>
+    </div>
 
-            {{-- Bouton pour remonter au dossier parent (s'affiche uniquement si on n'est pas à la racine) --}}
-            @if($showBackBtn)
-            <a href="{{ route('files.index', ['path' => $parentPath]) }}" class="btn btn-secondary mb-3">
-            ⬆️ Dossier parent
-            </a>
-            @endif
+    {{-- Alertes esthétiques --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
-            <hr>
-            @if(session('success'))
-                <div class="alert alert-success">{{ session('success') }}</div>
-            @endif
-            @if(session('error'))
-                <div class="alert alert-danger">{{ session('error') }}</div>
-            @endif
+    {{-- Conteneur Principal Blanc --}}
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-custom table-borderless mb-0 w-100">
+                    <thead class="text-muted bg-white">
+                        <tr>
+                            <th class="ps-4" style="width: 50%;">Nom du fichier</th>
+                            <th style="width: 15%;">Taille</th>
+                            <th style="width: 15%;">Type</th>
+                            <th style="width: 15%;">Modifié le</th>
+                            <th class="text-end pe-4" style="width: 5%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
 
-            {{-- FORMULAIRE D'ENVOI DE FICHIER --}}
-            <div class="card card-body bg-light mb-4">
-                <form action="{{ route('files.store') }}" method="POST" enctype="multipart/form-data" class="d-flex align-items-center">
-                    @csrf
-                    <input type="hidden" name="path" value="{{ $safeRelativePath ?: $userService }}">
-                    
-                    <input type="file" name="file" class="form-control me-3" required>
-                    <button type="submit" class="btn btn-primary text-nowrap">📤 Envoyer le fichier</button>
-                </form>
-            </div>
+                        {{-- DOSSIERS --}}
+                        @foreach($folders as $folder)
+                            @php
+                                $newRelativePath = $safeRelativePath ? $safeRelativePath . '/' . basename($folder) : basename($folder);
+                            @endphp
+                            <tr class="file-row">
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-folder-fill text-warning icon-large me-3"></i>
+                                        <a href="{{ route('files.index', ['path' => $newRelativePath]) }}" class="folder-link fw-medium">
+                                            {{ basename($folder) }}
+                                        </a>
+                                    </div>
+                                </td>
+                                <td class="text-muted small">--</td>
+                                <td><span class="badge bg-light text-secondary border fw-normal">Dossier</span></td>
+                                <td class="text-muted small">--</td>
+                                <td class="text-end pe-4">
+                                    <a href="{{ route('files.index', ['path' => $newRelativePath]) }}" class="btn btn-icon text-primary" title="Ouvrir">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        @endforeach
 
-            <div class="list-group">
-                
-                {{-- 3. AFFICHAGE DES SOUS-DOSSIERS --}}
-                @foreach($folders as $folder)
-                    @php
-                        // On construit le lien correct pour entrer dans le dossier
-                        $newRelativePath = $safeRelativePath ? $safeRelativePath . '/' . basename($folder) : basename($folder);
-                    @endphp
-                    
-                    <a href="{{ route('files.index', ['path' => $newRelativePath]) }}" class="list-group-item list-group-item-action list-group-item-warning font-weight-bold">
-                        🗂️ {{ basename($folder) }}
-                    </a>
-                @endforeach
+                        {{-- FICHIERS --}}
+                        @foreach($files as $file)
+                            <tr class="file-row">
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi {{ $file['icon'] }} icon-large me-3"></i>
+                                        <span class="fw-medium text-dark">{{ $file['name'] }}</span>
+                                    </div>
+                                </td>
+                                <td class="text-muted small">{{ $file['size'] }}</td>
+                                <td><span class="badge bg-light text-secondary border fw-normal">{{ $file['type'] }}</span></td>
+                                <td class="text-muted small">{{ $file['date'] }}</td>
+                                <td class="text-end pe-4">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        
+                                        {{-- Bouton Télécharger --}}
+                                        <a href="{{ route('files.download', ['path' => $file['path']]) }}" class="btn btn-icon text-success" title="Télécharger">
+                                            <i class="bi bi-download"></i>
+                                        </a>
 
-                {{-- 4. AFFICHAGE DES FICHIERS --}}
-                @foreach($files as $file)
-                    {{-- 4. AFFICHAGE DES FICHIERS --}}
-                @foreach($files as $file)
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>📄 {{ basename($file) }}</span>
-                        
-                        <div>
-                            {{-- Bouton de téléchargement --}}
-                            <a href="{{ route('files.download', ['path' => $file]) }}" class="btn btn-sm btn-success me-2">
-                                ⬇️ Télécharger
-                            </a>
+                                        {{-- Bouton Supprimer --}}
+                                        <form action="{{ route('files.destroy') }}" method="POST" class="d-inline" onsubmit="return confirm('Supprimer définitivement ce fichier ?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <input type="hidden" name="path" value="{{ $file['path'] }}">
+                                            <button type="submit" class="btn btn-icon text-danger" title="Supprimer">
+                                                <i class="bi bi-trash3"></i>
+                                            </button>
+                                        </form>
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
 
-                            {{-- Bouton de suppression --}}
-                            <form action="{{ route('files.destroy') }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer définitivement ce fichier ?');">
-                                @csrf
-                                @method('DELETE')
-                                <input type="hidden" name="path" value="{{ $file }}">
-                                <button type="submit" class="btn btn-sm btn-danger">
-                                    🗑️ Supprimer
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                @endforeach
+                        {{-- VIDE --}}
+                        @if(empty($folders) && empty($files))
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <i class="bi bi-folder2-open text-muted" style="font-size: 3rem; opacity: 0.5;"></i>
+                                    <h5 class="mt-3 text-muted fw-light">Ce dossier est vide</h5>
+                                    <p class="text-muted small">Cliquez sur "Uploader" pour ajouter des fichiers.</p>
+                                </td>
+                            </tr>
+                        @endif
 
-                {{-- 5. CAS OÙ LE DOSSIER EST VIDE --}}
-                @if(empty($folders) && empty($files))
-                    <div class="list-group-item text-muted text-center py-4">
-                        Ce dossier est vide.
-                    </div>
-                @endif
-
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

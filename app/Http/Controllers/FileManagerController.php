@@ -10,131 +10,130 @@ class FileManagerController extends Controller
 {
     public function index(Request $request)
     {
-    $user = Auth::user(); 
+        $user = Auth::user(); 
 
-    if (!$user) {
-        return redirect('/login');
-    }
+        if (!$user) {
+            return redirect('/login');
+        }
 
-    // 1. On récupère le service et on force la première lettre en Majuscule (ex: informatique -> Informatique)
-    $userService = ucfirst(strtolower($user->getService())); 
-    
-    $servicesAutorises = ['Administration', 'Informatique', 'Marketing', 'Production'];
+        $userService = ucfirst(strtolower($user->getService())); 
+        $servicesAutorises = ['Administration', 'Informatique', 'Marketing', 'Production'];
 
-    // 2. On détermine le dossier autorisé
-    // Si l'utilisateur est dans la liste, son dossier est son service. Sinon, il n'a accès à RIEN (ou un dossier public).
-    $baseFolder = in_array($userService, $servicesAutorises) ? $userService : null;
+        $baseFolder = in_array($userService, $servicesAutorises) ? $userService : null;
 
-    // SÉCURITÉ : Si l'utilisateur n'appartient à aucun service autorisé, on lui refuse l'accès
-    if ($baseFolder === null) {
-        abort(403, "Vous n'avez pas l'autorisation d'accéder au gestionnaire de fichiers.");
-    }
+        if ($baseFolder === null) {
+            abort(403, "Vous n'avez pas l'autorisation d'accéder au gestionnaire de fichiers.");
+        }
 
-    // 3. On récupère le chemin demandé
-    $requestedPath = $request->query('path', $baseFolder);
+        $requestedPath = $request->query('path', $baseFolder);
+        $safeRelativePath = str_replace('..', '', (string)$requestedPath);
 
-    // 4. SÉCURITÉ : Nettoyage contre les piratages de type "../"
-    $safeRelativePath = str_replace('..', '', (string)$requestedPath);
+        if (!str_starts_with($safeRelativePath, $baseFolder)) {
+            $safeRelativePath = $baseFolder;
+        }
 
-    // 5. LE VERROU : Si le chemin demandé ne commence pas par le dossier du service, on le ramène à son dossier
-    if (!str_starts_with($safeRelativePath, $baseFolder)) {
-        $safeRelativePath = $baseFolder;
-    }
+        $storagePath = $safeRelativePath; 
+        $currentFolder = $safeRelativePath; 
 
-    $storagePath = $safeRelativePath; 
-    $currentFolder = $safeRelativePath; 
+        $parentPath = dirname($safeRelativePath);
+        if (!str_starts_with($parentPath, $baseFolder)) {
+            $parentPath = $baseFolder;
+        }
 
-    // Calcul du parent pour le bouton retour
-    $parentPath = dirname($safeRelativePath);
-    // On empêche de remonter plus haut que le dossier du service
-    if (!str_starts_with($parentPath, $baseFolder)) {
-        $parentPath = $baseFolder;
-    }
+        $isAtRoot = ($safeRelativePath === $baseFolder);
+        $showBackBtn = !$isAtRoot;
 
-    // Gestion de l'affichage du bouton "Retour"
-    $isAtRoot = ($safeRelativePath === $baseFolder);
-    $showBackBtn = !$isAtRoot;
+        $folders = Storage::disk('nas')->directories($storagePath);
+        $rawFiles = Storage::disk('nas')->files($storagePath);
 
-    // 6. Lecture du NAS
-    $folders = Storage::disk('nas')->directories($storagePath);
+        $files = [];
+        foreach ($rawFiles as $file) {
+            try {
+                $size = Storage::disk('nas')->size($file);
+                $time = Storage::disk('nas')->lastModified($file);
+                
+                $units = ['o', 'Ko', 'Mo', 'Go', 'To'];
+                $i = 0;
+                while ($size >= 1024 && $i < 4) {
+                    $size /= 1024;
+                    $i++;
+                }
+                $formattedSize = round($size, 2) . ' ' . $units[$i];
+                $formattedDate = date('d/m/Y', $time); // Plus épuré
+                
+            } catch (\Exception $e) {
+                $formattedSize = '--';
+                $formattedDate = '--';
+            }
 
-    $files = Storage::disk('nas')->files($storagePath);
+            $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+            $type = $extension ? strtoupper($extension) : 'Inconnu';
+            
+            // Attribution des icônes professionnelles (Bootstrap Icons)
+            $icon = 'bi-file-earmark text-secondary'; 
+            if (in_array($extension, ['png', 'jpg', 'jpeg', 'gif', 'svg'])) $icon = 'bi-file-image text-primary';
+            elseif (in_array($extension, ['pdf'])) $icon = 'bi-filetype-pdf text-danger';
+            elseif (in_array($extension, ['doc', 'docx'])) $icon = 'bi-file-word text-info';
+            elseif (in_array($extension, ['xls', 'xlsx', 'csv'])) $icon = 'bi-file-excel text-success';
+            elseif (in_array($extension, ['zip', 'rar', '7z'])) $icon = 'bi-file-zip text-warning';
+            elseif (in_array($extension, ['mp4', 'avi', 'mkv'])) $icon = 'bi-file-play text-danger';
+            elseif (in_array($extension, ['mp3', 'wav'])) $icon = 'bi-file-music text-info';
 
-    return view('filemanager', compact(
-        'folders', 
-        'files', 
-        'currentFolder', 
-        'userService', 
-        'safeRelativePath', 
-        'parentPath',
-        'showBackBtn'
+            $files[] = [
+                'path' => $file,
+                'name' => basename($file),
+                'size' => $formattedSize,
+                'date' => $formattedDate,
+                'type' => $type,
+                'icon' => $icon
+            ];
+        }
+
+        return view('filemanager', compact(
+            'folders', 'files', 'currentFolder', 'userService', 'safeRelativePath', 'parentPath', 'showBackBtn'
         ));
     }
+
     public function download(Request $request)
     {
         $path = $request->query('path'); 
-        
-        // On vérifie si le fichier existe sur le disque NAS
-        if (!$path || !Storage::disk('nas')->exists($path)) {
-            abort(404, "Fichier introuvable.");
-        }
-
+        if (!$path || !Storage::disk('nas')->exists($path)) { abort(404, "Fichier introuvable."); }
         return Storage::disk('nas')->download($path);
     }
+
     public function store(Request $request)
     {
         $user = Auth::user();
         $userService = ucfirst(strtolower($user->getService()));
-        
-        // Le dossier dans lequel l'utilisateur essaie d'envoyer le fichier
         $path = $request->input('path'); 
 
-        // SÉCURITÉ GPO : On s'assure qu'il ne peut uploader que dans son propre service
         if (!str_starts_with($path, $userService)) {
-            return back()->with('error', 'Vous n\'avez pas le droit de déposer des fichiers dans ce dossier.');
+            return back()->with('error', 'Action non autorisée.');
         }
 
-        // On vérifie qu'un fichier a bien été envoyé (et on limite la taille si besoin, ex: 10Mo = 10240)
-        $request->validate([
-            'file' => 'required|file|max:10240', 
-        ]);
+        $request->validate(['file' => 'required|file|max:10240']);
 
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            
-            // On récupère le vrai nom du fichier
-            $name = $file->getClientOriginalName();
-            
-            // On le sauvegarde sur le NAS dans le  dossier actuel
-            Storage::disk('nas')->putFileAs($path, $file, $name);
-            
-            return back()->with('success', 'Le fichier a été envoyé avec succès !');
+            Storage::disk('nas')->putFileAs($path, $file, $file->getClientOriginalName());
+            return back()->with('success', 'Fichier ajouté avec succès.');
         }
 
-        return back()->with('error', 'Erreur lors de l\'envoi du fichier.');
+        return back()->with('error', 'Erreur lors de l\'envoi.');
     }
+
     public function destroy(Request $request)
     {
         $user = Auth::user();
         $userService = ucfirst(strtolower($user->getService()));
-        
-        // On récupère et on sécurise le chemin demandé
         $path = $request->input('path');
         $safePath = str_replace('..', '', (string)$path);
 
-        // SÉCURITÉ : Vérifier que le fichier appartient bien au service de l'utilisateur
-        if (!str_starts_with($safePath, $userService)) {
-            return back()->with('error', "Vous n'avez pas le droit de supprimer ce fichier.");
+        if (!str_starts_with($safePath, $userService) || !Storage::disk('nas')->exists($safePath)) {
+            return back()->with('error', "Impossible de supprimer ce fichier.");
         }
 
-        // Vérifier si le fichier existe vraiment
-        if (!$safePath || !Storage::disk('nas')->exists($safePath)) {
-            return back()->with('error', "Le fichier est introuvable.");
-        }
-
-        // On supprime le fichier
         Storage::disk('nas')->delete($safePath);
-
-        return back()->with('success', "Le fichier a été supprimé avec succès !");
+        return back()->with('success', "Le fichier a été supprimé.");
     }
 }
