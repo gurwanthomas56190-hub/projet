@@ -19,13 +19,30 @@
             <h5 class="mb-3">Dossier actuel : <strong>{{ $currentFolder }}</strong></h5>
 
             {{-- Bouton pour remonter au dossier parent (s'affiche uniquement si on n'est pas à la racine) --}}
-            @if($safeRelativePath)
-                <a href="{{ route('files.index', ['path' => $parentPath]) }}" class="btn btn-secondary mb-3">
-                    ⬆️ Dossier parent
-                </a>
+            @if($showBackBtn)
+            <a href="{{ route('files.index', ['path' => $parentPath]) }}" class="btn btn-secondary mb-3">
+            ⬆️ Dossier parent
+            </a>
             @endif
 
             <hr>
+            @if(session('success'))
+                <div class="alert alert-success">{{ session('success') }}</div>
+            @endif
+            @if(session('error'))
+                <div class="alert alert-danger">{{ session('error') }}</div>
+            @endif
+
+            {{-- FORMULAIRE D'ENVOI DE FICHIER --}}
+            <div class="card card-body bg-light mb-4">
+                <form action="{{ route('files.store') }}" method="POST" enctype="multipart/form-data" class="d-flex align-items-center">
+                    @csrf
+                    <input type="hidden" name="path" value="{{ $safeRelativePath ?: $userService }}">
+                    
+                    <input type="file" name="file" class="form-control me-3" required>
+                    <button type="submit" class="btn btn-primary text-nowrap">📤 Envoyer le fichier</button>
+                </form>
+            </div>
 
             <div class="list-group">
                 

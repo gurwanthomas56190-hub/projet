@@ -143,3 +143,149 @@ table.styled-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
 
 /* --- FOOTER --- */
 footer { text-align: center; padding: 2rem; color: #777; background: #fff; border-top: 1px solid #eaeaea;}
+
+
+
+/* =========================================
+   STYLE DU GESTIONNAIRE DE FICHIERS 
+   ========================================= */
+
+/* Utilitaires de positionnement (Flexbox) */
+.d-flex { display: flex; }
+.justify-content-between { justify-content: space-between; }
+.align-items-center { align-items: center; }
+.mt-4 { margin-top: 1.5rem; }
+.mb-3 { margin-bottom: 1rem; }
+.mb-0 { margin-bottom: 0; }
+.py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.text-center { text-align: center; }
+.text-muted { color: #6c757d; }
+.text-white { color: #fff; }
+.text-dark { color: #333; }
+.font-weight-bold { font-weight: bold; }
+
+/* En-tête de la carte (Header bleu) */
+.card-header.bg-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px 10px 0 0;
+    margin: -2rem -2rem 1.5rem -2rem; /* Étend l'en-tête jusqu'aux bords de la carte */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Badge (Service) */
+.badge {
+    display: inline-block;
+    padding: 0.4em 0.8em;
+    font-size: 0.85em;
+    font-weight: 700;
+    border-radius: 50px;
+}
+.badge.bg-light { 
+    background-color: #f8f9fa; 
+    color: var(--primary-color); 
+}
+
+/* Boutons */
+.btn {
+    display: inline-block;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    border-radius: 6px;
+    border: none;
+    transition: all 0.2s ease-in-out;
+}
+.btn-sm { padding: 0.3rem 0.6rem; font-size: 0.85rem; }
+.btn-secondary { background-color: #6c757d; color: white; }
+.btn-secondary:hover { background-color: #5a6268; transform: translateY(-1px); }
+.btn-success { background-color: #28a745; color: white; }
+.btn-success:hover { background-color: #218838; transform: translateY(-1px); }
+
+/* Liste des dossiers et fichiers */
+.list-group {
+    display: flex;
+    flex-direction: column;
+    padding-left: 0;
+    margin-bottom: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.list-group-item {
+    position: relative;
+    display: block;
+    padding: 1rem 1.25rem;
+    background-color: #fff;
+    border: 1px solid #edf2f7;
+    margin-bottom: -1px;
+    text-decoration: none;
+    color: var(--text-color);
+    transition: all 0.2s ease;
+}
+
+/* Effets au survol pour les dossiers (jaunes) */
+.list-group-item-warning {
+    background-color: #fffdf5;
+    border-left: 4px solid #ffc107;
+}
+.list-group-item-warning:hover {
+    background-color: #fff8e1;
+    text-decoration: none;
+    color: var(--text-color);
+    padding-left: 1.75rem; /* Crée un petit effet de décalage vers la droite */
+}
+
+/* Effets au survol pour les fichiers */
+.list-group-item.d-flex:hover {
+    background-color: #f8f9fa;
+    padding-left: 1.75rem;
+    border-left: 4px solid var(--secondary-color);
+}
+
+/* =========================================
+   STYLE DE L'ENVOI DE FICHIERS (UPLOAD)
+   ========================================= */
+
+/* 1. La boîte de saisie globale */
+.form-control {
+    display: block;
+    width: 100%;
+    padding: 0.4rem;
+    font-size: 0.95rem;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    color: var(--text-color);
+}
+
+/* 2. La magie pour transformer le bouton "Parcourir" */
+input[type="file"]::file-selector-button {
+    padding: 0.4rem 1rem;
+    margin-right: 15px;
+    border-radius: 4px;
+    background-color: var(--primary-color); /* Bleu foncé Silvadec */
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s ease-in-out;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background-color: var(--secondary-color); /* Bleu clair au survol */
+}
+
+/* 3. Le bouton final "Envoyer" */
+.btn-primary {
+    background-color: var(--secondary-color); /* Bleu clair Silvadec */
+    color: white;
+}
+.btn-primary:hover {
+    background-color: #004494; /* Assombrit un peu au survol */
+    transform: translateY(-1px);
+}

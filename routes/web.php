@@ -52,3 +52,4 @@ Route::get('/planning', function () {
 
 Route::get('/fichiers', [FileManagerController::class, 'index'])->name('files.index')->middleware('auth');
 Route::get('/fichiers/download', [FileManagerController::class, 'download'])->name('files.download')->middleware('auth');
+Route::post('/fichiers/upload', [App\Http\Controllers\FileManagerController::class, 'store'])->name('files.store');
