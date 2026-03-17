@@ -14,6 +14,12 @@
         </div>
         
         <div class="card-body">
+            @if(session('success'))
+                <div class="alert alert-success">{{ session('success') }}</div>
+            @endif
+            @if(session('error'))
+                <div class="alert alert-danger">{{ session('error') }}</div>
+            @endif
             
             {{-- 2. NAVIGATION ET CHEMIN ACTUEL --}}
             <h5 class="mb-3">Dossier actuel : <strong>{{ $currentFolder }}</strong></h5>
@@ -60,13 +66,27 @@
 
                 {{-- 4. AFFICHAGE DES FICHIERS --}}
                 @foreach($files as $file)
+                    {{-- 4. AFFICHAGE DES FICHIERS --}}
+                @foreach($files as $file)
                     <div class="list-group-item d-flex justify-content-between align-items-center">
                         <span>📄 {{ basename($file) }}</span>
                         
-                        {{-- Bouton de téléchargement --}}
-                        <a href="{{ route('files.download', ['path' => $file]) }}" class="btn btn-sm btn-success">
-                            ⬇️ Télécharger
-                        </a>
+                        <div>
+                            {{-- Bouton de téléchargement --}}
+                            <a href="{{ route('files.download', ['path' => $file]) }}" class="btn btn-sm btn-success me-2">
+                                ⬇️ Télécharger
+                            </a>
+
+                            {{-- Bouton de suppression --}}
+                            <form action="{{ route('files.destroy') }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer définitivement ce fichier ?');">
+                                @csrf
+                                @method('DELETE')
+                                <input type="hidden" name="path" value="{{ $file }}">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    🗑️ Supprimer
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 @endforeach
 

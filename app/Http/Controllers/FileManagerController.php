@@ -57,6 +57,7 @@ class FileManagerController extends Controller
 
     // 6. Lecture du NAS
     $folders = Storage::disk('nas')->directories($storagePath);
+
     $files = Storage::disk('nas')->files($storagePath);
 
     return view('filemanager', compact(
@@ -104,12 +105,36 @@ class FileManagerController extends Controller
             // On récupère le vrai nom du fichier
             $name = $file->getClientOriginalName();
             
-            // On le sauvegarde sur le NAS dans le dossier actuel
+            // On le sauvegarde sur le NAS dans le  dossier actuel
             Storage::disk('nas')->putFileAs($path, $file, $name);
             
             return back()->with('success', 'Le fichier a été envoyé avec succès !');
         }
 
         return back()->with('error', 'Erreur lors de l\'envoi du fichier.');
+    }
+    public function destroy(Request $request)
+    {
+        $user = Auth::user();
+        $userService = ucfirst(strtolower($user->getService()));
+        
+        // On récupère et on sécurise le chemin demandé
+        $path = $request->input('path');
+        $safePath = str_replace('..', '', (string)$path);
+
+        // SÉCURITÉ : Vérifier que le fichier appartient bien au service de l'utilisateur
+        if (!str_starts_with($safePath, $userService)) {
+            return back()->with('error', "Vous n'avez pas le droit de supprimer ce fichier.");
+        }
+
+        // Vérifier si le fichier existe vraiment
+        if (!$safePath || !Storage::disk('nas')->exists($safePath)) {
+            return back()->with('error', "Le fichier est introuvable.");
+        }
+
+        // On supprime le fichier
+        Storage::disk('nas')->delete($safePath);
+
+        return back()->with('success', "Le fichier a été supprimé avec succès !");
     }
 }
