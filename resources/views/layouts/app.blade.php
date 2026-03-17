@@ -10,7 +10,7 @@
 </head>
 <body>
 
-    <header class="intranet-header">
+    <header class="intranet-header" style="position: sticky; top: 0; height: 10vh; z-index: 1000;">
         <div class="header-top">
             <div class="logo-area">
                 <h1>Silvadec - Intranet</h1>

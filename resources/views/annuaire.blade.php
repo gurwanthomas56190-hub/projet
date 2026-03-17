@@ -5,6 +5,7 @@
 @section('content')
 <div class="container full-width"> 
     <main>
+        
         <div class="card">
             <h2>📞 Annuaire des collaborateurs</h2>
             <p>Retrouvez facilement les coordonnées de vos collègues (données synchronisées avec l'Active Directory).</p>
