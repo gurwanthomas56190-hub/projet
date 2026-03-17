@@ -43,6 +43,7 @@ class FileManagerController extends Controller
         $isAtRoot = ($safeRelativePath === $baseFolder);
         $showBackBtn = !$isAtRoot;
 
+        // Lecture du NAS
         $folders = Storage::disk('nas')->directories($storagePath);
         $rawFiles = Storage::disk('nas')->files($storagePath);
 
@@ -59,7 +60,7 @@ class FileManagerController extends Controller
                     $i++;
                 }
                 $formattedSize = round($size, 2) . ' ' . $units[$i];
-                $formattedDate = date('d/m/Y', $time); // Plus épuré
+                $formattedDate = date('d/m/Y à H:i', $time);
                 
             } catch (\Exception $e) {
                 $formattedSize = '--';
@@ -67,17 +68,17 @@ class FileManagerController extends Controller
             }
 
             $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-            $type = $extension ? strtoupper($extension) : 'Inconnu';
+            $type = $extension ? strtoupper($extension) : 'Fichier';
             
-            // Attribution des icônes professionnelles (Bootstrap Icons)
-            $icon = 'bi-file-earmark text-secondary'; 
-            if (in_array($extension, ['png', 'jpg', 'jpeg', 'gif', 'svg'])) $icon = 'bi-file-image text-primary';
-            elseif (in_array($extension, ['pdf'])) $icon = 'bi-filetype-pdf text-danger';
-            elseif (in_array($extension, ['doc', 'docx'])) $icon = 'bi-file-word text-info';
-            elseif (in_array($extension, ['xls', 'xlsx', 'csv'])) $icon = 'bi-file-excel text-success';
-            elseif (in_array($extension, ['zip', 'rar', '7z'])) $icon = 'bi-file-zip text-warning';
-            elseif (in_array($extension, ['mp4', 'avi', 'mkv'])) $icon = 'bi-file-play text-danger';
-            elseif (in_array($extension, ['mp3', 'wav'])) $icon = 'bi-file-music text-info';
+            // ATTRIBUTION DES ICÔNES ET COULEURS (Bootstrap)
+            $icon = 'bi-file-earmark text-secondary'; // Gris par défaut
+            if (in_array($extension, ['png', 'jpg', 'jpeg', 'gif', 'svg'])) $icon = 'bi-file-earmark-image text-primary'; // Bleu
+            elseif (in_array($extension, ['pdf'])) $icon = 'bi-file-earmark-pdf text-danger'; // Rouge
+            elseif (in_array($extension, ['doc', 'docx'])) $icon = 'bi-file-earmark-word text-info'; // Bleu clair
+            elseif (in_array($extension, ['xls', 'xlsx', 'csv'])) $icon = 'bi-file-earmark-excel text-success'; // Vert
+            elseif (in_array($extension, ['zip', 'rar', '7z'])) $icon = 'bi-file-earmark-zip text-dark'; // Sombre
+            elseif (in_array($extension, ['mp4', 'avi', 'mkv'])) $icon = 'bi-file-earmark-play text-warning'; // Jaune
+            elseif (in_array($extension, ['mp3', 'wav'])) $icon = 'bi-file-earmark-music text-info'; // Bleu clair
 
             $files[] = [
                 'path' => $file,
@@ -85,7 +86,7 @@ class FileManagerController extends Controller
                 'size' => $formattedSize,
                 'date' => $formattedDate,
                 'type' => $type,
-                'icon' => $icon
+                'icon' => $icon // On envoie la classe Bootstrap complète à la vue
             ];
         }
 

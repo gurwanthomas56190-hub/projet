@@ -9,3 +9,94 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+/* =========================================
+   DESIGN SYSTEM DU GESTIONNAIRE DE FICHIERS
+   ========================================= */
+
+body { background-color: #f8f9fa; }
+
+.filemanager-container { max-width: 1400px; }
+
+/* Cartes des dossiers */
+.folder-card { 
+    transition: all 0.2s ease-in-out; 
+    border-radius: 12px; 
+    background: #ffffff; 
+    border: 1px solid #e9ecef;
+    text-decoration: none; 
+    color: #333; 
+    display: flex; 
+    align-items: center; 
+    padding: 15px 20px; 
+}
+.folder-card:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05); 
+    border-color: #dee2e6;
+    color: #0d6efd;
+}
+
+/* Cartes des fichiers */
+.file-card { 
+    transition: all 0.2s ease-in-out; 
+    border-radius: 12px; 
+    background: #ffffff; 
+    border: 1px solid #e9ecef;
+    position: relative; 
+    overflow: hidden;
+}
+.file-card:hover { 
+    transform: translateY(-4px); 
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05); 
+    border-color: #dee2e6;
+}
+
+/* Zone de l'icône du fichier */
+.file-icon-wrapper { 
+    height: 140px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    background-color: #f8f9fa; 
+    font-size: 4rem; 
+    border-bottom: 1px solid #f1f1f1;
+}
+
+/* Informations du fichier */
+.file-info { padding: 15px; }
+.file-name { 
+    font-size: 0.95rem; 
+    font-weight: 600; 
+    color: #2b2b2b;
+    text-overflow: ellipsis; 
+    overflow: hidden; 
+    white-space: nowrap; 
+    margin-bottom: 4px;
+}
+.file-meta { font-size: 0.75rem; color: #878a99; font-weight: 500; }
+
+/* Boutons et menus */
+.dropdown-toggle-hidden::after { display: none !important; }
+.action-btn { 
+    position: absolute; 
+    top: 10px; 
+    right: 10px; 
+    background: rgba(255, 255, 255, 0.9); 
+    border: 1px solid #eee;
+    border-radius: 50%; 
+    width: 34px; 
+    height: 34px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    transition: all 0.2s; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    color: #666;
+}
+.action-btn:hover { background: #fff; color: #000; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.nav-icon-btn { width: 42px; height: 42px; transition: 0.2s; }
+.dropdown-menu-custom { min-width: 200px; }
+
+/* Textes et images de l'interface */
+.empty-folder-img { width: 120px; opacity: 0.5; }
+.section-title { font-size: 0.75rem; letter-spacing: 1px; }
