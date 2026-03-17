@@ -11,20 +11,20 @@ class FileManagerController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user(); 
-
         if (!$user) {
             return redirect('/login');
         }
 
+        // 1. Détermination du service et du dossier de base
         $userService = ucfirst(strtolower($user->getService())); 
         $servicesAutorises = ['Administration', 'Informatique', 'Marketing', 'Production'];
-
         $baseFolder = in_array($userService, $servicesAutorises) ? $userService : null;
 
         if ($baseFolder === null) {
             abort(403, "Vous n'avez pas l'autorisation d'accéder au gestionnaire de fichiers.");
         }
 
+        // 2. Sécurisation du chemin
         $requestedPath = $request->query('path', $baseFolder);
         $safeRelativePath = str_replace('..', '', (string)$requestedPath);
 
@@ -34,65 +34,76 @@ class FileManagerController extends Controller
 
         $storagePath = $safeRelativePath; 
         $currentFolder = $safeRelativePath; 
-
         $parentPath = dirname($safeRelativePath);
+        
         if (!str_starts_with($parentPath, $baseFolder)) {
             $parentPath = $baseFolder;
         }
 
-        $isAtRoot = ($safeRelativePath === $baseFolder);
-        $showBackBtn = !$isAtRoot;
+        $showBackBtn = ($safeRelativePath !== $baseFolder);
 
-        // Lecture du NAS
-        $folders = Storage::disk('nas')->directories($storagePath);
-        $rawFiles = Storage::disk('nas')->files($storagePath);
-
-        $files = [];
-        foreach ($rawFiles as $file) {
-            try {
-                $size = Storage::disk('nas')->size($file);
-                $time = Storage::disk('nas')->lastModified($file);
-                
-                $units = ['o', 'Ko', 'Mo', 'Go', 'To'];
-                $i = 0;
-                while ($size >= 1024 && $i < 4) {
-                    $size /= 1024;
-                    $i++;
-                }
-                $formattedSize = round($size, 2) . ' ' . $units[$i];
-                $formattedDate = date('d/m/Y à H:i', $time);
-                
-            } catch (\Exception $e) {
-                $formattedSize = '--';
-                $formattedDate = '--';
-            }
-
-            $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-            $type = $extension ? strtoupper($extension) : 'Fichier';
-            
-            // ATTRIBUTION DES ICÔNES ET COULEURS (Bootstrap)
-            $icon = 'bi-file-earmark text-secondary'; // Gris par défaut
-            if (in_array($extension, ['png', 'jpg', 'jpeg', 'gif', 'svg'])) $icon = 'bi-file-earmark-image text-primary'; // Bleu
-            elseif (in_array($extension, ['pdf'])) $icon = 'bi-file-earmark-pdf text-danger'; // Rouge
-            elseif (in_array($extension, ['doc', 'docx'])) $icon = 'bi-file-earmark-word text-info'; // Bleu clair
-            elseif (in_array($extension, ['xls', 'xlsx', 'csv'])) $icon = 'bi-file-earmark-excel text-success'; // Vert
-            elseif (in_array($extension, ['zip', 'rar', '7z'])) $icon = 'bi-file-earmark-zip text-dark'; // Sombre
-            elseif (in_array($extension, ['mp4', 'avi', 'mkv'])) $icon = 'bi-file-earmark-play text-warning'; // Jaune
-            elseif (in_array($extension, ['mp3', 'wav'])) $icon = 'bi-file-earmark-music text-info'; // Bleu clair
-
-            $files[] = [
-                'path' => $file,
-                'name' => basename($file),
-                'size' => $formattedSize,
-                'date' => $formattedDate,
-                'type' => $type,
-                'icon' => $icon // On envoie la classe Bootstrap complète à la vue
+        // 3. Récupération et TRI des DOSSIERS (plus récents en premier)
+        $rawFolders = Storage::disk('nas')->directories($storagePath);
+        $folders = [];
+        foreach ($rawFolders as $f) {
+            $folders[] = [
+                'name' => basename($f),
+                'path' => $f,
+                'timestamp' => Storage::disk('nas')->lastModified($f)
             ];
         }
+        usort($folders, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
+
+        // 4. Récupération et TRI des FICHIERS (plus récents en premier)
+        $rawFiles = Storage::disk('nas')->files($storagePath);
+        $files = [];
+        foreach ($rawFiles as $f) {
+            $time = Storage::disk('nas')->lastModified($f);
+            $size = Storage::disk('nas')->size($f);
+            
+            // Formatage de la taille
+            $units = ['o', 'Ko', 'Mo', 'Go'];
+            $i = 0;
+            $bytes = $size;
+            while ($bytes >= 1024 && $i < 3) { $bytes /= 1024; $i++; }
+
+            $files[] = [
+                'name' => basename($f),
+                'path' => $f,
+                'size' => round($bytes, 2) . ' ' . $units[$i],
+                'date' => date('d/m/Y H:i', $time),
+                'timestamp' => $time,
+                'ext' => strtolower(pathinfo($f, PATHINFO_EXTENSION))
+            ];
+        }
+        usort($files, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
 
         return view('filemanager', compact(
             'folders', 'files', 'currentFolder', 'userService', 'safeRelativePath', 'parentPath', 'showBackBtn'
         ));
+    }
+
+    // NOUVELLE MÉTHODE : Créer un dossier
+    public function makeDirectory(Request $request)
+    {
+        $user = Auth::user();
+        $userService = ucfirst(strtolower($user->getService()));
+        $path = $request->input('path');
+        $folderName = $request->input('folder_name');
+
+        if (!str_starts_with($path, $userService)) {
+            return back()->with('error', 'Action non autorisée dans ce répertoire.');
+        }
+
+        $request->validate(['folder_name' => 'required|string|max:255']);
+        $fullPath = $path . '/' . $folderName;
+
+        if (Storage::disk('nas')->exists($fullPath)) {
+            return back()->with('error', 'Ce dossier existe déjà.');
+        }
+
+        Storage::disk('nas')->makeDirectory($fullPath);
+        return back()->with('success', 'Dossier créé avec succès.');
     }
 
     public function download(Request $request)
@@ -119,7 +130,6 @@ class FileManagerController extends Controller
             Storage::disk('nas')->putFileAs($path, $file, $file->getClientOriginalName());
             return back()->with('success', 'Fichier ajouté avec succès.');
         }
-
         return back()->with('error', 'Erreur lors de l\'envoi.');
     }
 

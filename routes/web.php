@@ -54,3 +54,4 @@ Route::get('/fichiers', [FileManagerController::class, 'index'])->name('files.in
 Route::get('/fichiers/download', [FileManagerController::class, 'download'])->name('files.download')->middleware('auth');
 Route::post('/fichiers/upload', [App\Http\Controllers\FileManagerController::class, 'store'])->name('files.store');
 Route::delete('/fichiers/delete', [FileManagerController::class, 'destroy'])->name('files.destroy')->middleware('auth');
+Route::post('/fichiers/mkdir', [FileManagerController::class, 'makeDirectory'])->name('files.mkdir')->middleware('auth');
