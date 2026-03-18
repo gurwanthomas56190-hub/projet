@@ -99,7 +99,9 @@ body {
     flex: 1; /* Pousse le footer vers le bas */
 }
 
-.container.full-width { grid-template-columns: 1fr; }
+.container.full-width { 
+    grid-template-columns: 1fr;
+}
 
 .card {
     background: var(--card-bg);

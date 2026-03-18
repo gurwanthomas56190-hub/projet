@@ -32,7 +32,11 @@
                 <li><a href="#">Actualités</a></li>
                 <li><a href="{{ url('/annuaire') }}" class="{{ Request::is('annuaire') ? 'active' : '' }}">Annuaire</a></li>
                 <li><a href="{{ url('/planning') }}" class="{{ Request::is('planning') ? 'active' : '' }}">Planning</a></li>
-                <li><a href="{{ url('/support_informatique') }}" class="{{ Request::is('support_informatique') ? 'active' : '' }}">Support Informatique</a></li>
+                @auth
+            @if(Auth::user()->getFirstAttribute('samaccountname') === 'Administrateur')
+            <li><a href="{{ url('/support_informatique') }}" class="{{ Request::is('support_informatique') ? 'active' : '' }}">Support Informatique</a></li>
+            @endif
+            @endauth
             </ul>
         </nav>
     </header>
