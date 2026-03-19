@@ -10,56 +10,26 @@ use App\Models\User as LocalUser;  // <-- Pour connecter l'utilisateur dans Lara
 class LoginController extends Controller
 {
     // Affiche la page de connexion OU connecte automatiquement via l'AD
-    public function showLoginForm(Request $request) {
+    public function showLoginForm() {
+    
+    // TRICHE DE DÉVELOPPEMENT : Faux SSO invisible
+    // Si l'application est en mode "local" (voir fichier .env)
+    if (app()->environment('local')) {
         
-        // 1. On récupère le paramètre ?guid=... dans l'URL
-        if ($request->has('guid')) {
-            $guid = $request->query('guid');
-
-            try {
-                // 2. On interroge DIRECTEMENT l'Active Directory
-                // LdapRecord va chercher si ce "objectguid" existe dans votre AD
-                $ldapUser = LdapUser::findByGuid($guid);
-
-                // 3. Si l'utilisateur est trouvé dans l'AD
-                if ($ldapUser) {
-                    
-                    // On récupère son identifiant Windows (ex: "g.thomas") depuis l'AD
-                    $samaccountname = $ldapUser->getFirstAttribute('samaccountname');
-
-                    // 4. On cherche le compte associé dans la base de données Laravel
-                    // (Car Auth::login() a besoin d'un utilisateur local pour la session web)
-                    $localUser = LocalUser::where('samaccountname', $samaccountname)->first();
-
-                    if ($localUser) {
-                        // 5. Tout est bon ! On le connecte de force, sans mot de passe
-                        Auth::login($localUser);
-                        
-                        $request->session()->regenerate();
-                        return redirect()->intended('/');
-                    } else {
-                        // S'il est dans l'AD mais qu'il ne s'est jamais connecté à Laravel avant
-                        return view('login')->withErrors([
-                            'samaccountname' => "Compte AD trouvé ($samaccountname), mais introuvable dans la base locale. Connectez-vous avec votre mot de passe une première fois."
-                        ]);
-                    }
-                } else {
-                    // S'il n'existe pas ou plus dans l'AD
-                    return view('login')->withErrors([
-                        'samaccountname' => "Le compte associé à ce GUID n'existe pas dans l'Active Directory."
-                    ]);
-                }
-            } catch (\Exception $e) {
-                // Si l'AD est injoignable ou si le format du GUID est mauvais
-                return view('login')->withErrors([
-                    'samaccountname' => "Erreur de communication avec l'AD ou GUID mal formaté."
-                ]);
-            }
+        // On récupère votre compte dans la base locale (remplacez 'g.thomas' par votre vrai identifiant)
+        $user = \App\Models\User::where('samaccountname', 'g.thomas')->first();
+        
+        if ($user) {
+            \Illuminate\Support\Facades\Auth::login($user);
+            return redirect()->intended('/');
         }
-
-        // 6. Si pas de GUID dans l'URL, on affiche simplement le formulaire
-        return view('login');
     }
+
+    // Le vrai code pour la production (quand ce ne sera plus en local)
+    // On affiche la page normale
+    return view('login');
+    }
+
 
     // Gère la tentative de connexion manuelle (reste inchangé)
     public function login(Request $request) {
