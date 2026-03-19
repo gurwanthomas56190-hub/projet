@@ -4,63 +4,85 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User; // <-- IMPORTANT : Assurez-vous d'importer votre modèle User local
+use App\Ldap\User as LdapUser;     // <-- Pour parler à l'Active Directory
+use App\Models\User as LocalUser;  // <-- Pour connecter l'utilisateur dans Laravel
 
 class LoginController extends Controller
 {
-    // Affiche la page de connexion ou connecte automatiquement (SSO)
-    public function showLoginForm() {
-        dd($_SERVER);        
-        // 1. TENTATIVE D'AUTHENTIFICATION AUTOMATIQUE (SSO Windows)
-        // Récupération de l'utilisateur fourni par le serveur web (Apache/IIS)
-        $remoteUser = $_SERVER['REMOTE_USER'] ?? $_SERVER['AUTH_USER'] ?? null;
+    // Affiche la page de connexion OU connecte automatiquement via l'AD
+    public function showLoginForm(Request $request) {
+        
+        // 1. On récupère le paramètre ?guid=... dans l'URL
+        if ($request->has('guid')) {
+            $guid = $request->query('guid');
 
-        if (!Auth::check() && $remoteUser) {
-            
-            // L'identifiant est souvent au format "DOMAINE\utilisateur"
-            // On le nettoie pour ne garder que le "samaccountname"
-            $parts = explode('\\', $remoteUser);
-            $samaccountname = end($parts);
+            try {
+                // 2. On interroge DIRECTEMENT l'Active Directory
+                // LdapRecord va chercher si ce "objectguid" existe dans votre AD
+                $ldapUser = LdapUser::findByGuid($guid);
 
-            // On cherche l'utilisateur dans la base de données locale
-            $user = User::where('samaccountname', $samaccountname)->first();
+                // 3. Si l'utilisateur est trouvé dans l'AD
+                if ($ldapUser) {
+                    
+                    // On récupère son identifiant Windows (ex: "g.thomas") depuis l'AD
+                    $samaccountname = $ldapUser->getFirstAttribute('samaccountname');
 
-            if ($user) {
-                // Si l'utilisateur est trouvé, on le connecte automatiquement
-                Auth::login($user);
-                
-                // Redirection vers la page d'accueil ou la page initialement demandée
-                return redirect()->intended('/');
+                    // 4. On cherche le compte associé dans la base de données Laravel
+                    // (Car Auth::login() a besoin d'un utilisateur local pour la session web)
+                    $localUser = LocalUser::where('samaccountname', $samaccountname)->first();
+
+                    if ($localUser) {
+                        // 5. Tout est bon ! On le connecte de force, sans mot de passe
+                        Auth::login($localUser);
+                        
+                        $request->session()->regenerate();
+                        return redirect()->intended('/');
+                    } else {
+                        // S'il est dans l'AD mais qu'il ne s'est jamais connecté à Laravel avant
+                        return view('login')->withErrors([
+                            'samaccountname' => "Compte AD trouvé ($samaccountname), mais introuvable dans la base locale. Connectez-vous avec votre mot de passe une première fois."
+                        ]);
+                    }
+                } else {
+                    // S'il n'existe pas ou plus dans l'AD
+                    return view('login')->withErrors([
+                        'samaccountname' => "Le compte associé à ce GUID n'existe pas dans l'Active Directory."
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Si l'AD est injoignable ou si le format du GUID est mauvais
+                return view('login')->withErrors([
+                    'samaccountname' => "Erreur de communication avec l'AD ou GUID mal formaté."
+                ]);
             }
         }
 
-        // 2. FALLBACK : Si la connexion automatique échoue ou ne trouve rien, 
-        // on affiche simplement le formulaire de connexion manuel comme avant.
-        return view('login'); //
+        // 6. Si pas de GUID dans l'URL, on affiche simplement le formulaire
+        return view('login');
     }
 
-    // Gère la tentative de connexion (Reste INCHANGÉ)
+    // Gère la tentative de connexion manuelle (reste inchangé)
     public function login(Request $request) {
         $credentials = $request->validate([
             'samaccountname' => ['required'], // L'identifiant Windows
-            'password' => ['required'], //
+            'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials)) { //
-            $request->session()->regenerate(); //
-            return redirect()->intended('/'); //
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+            return redirect()->intended('/');
         }
 
         return back()->withErrors([
-            'samaccountname' => 'Identifiant ou mot de passe incorrect.', //
+            'samaccountname' => 'Identifiant ou mot de passe incorrect.',
         ]);
     }
 
-    // Déconnexion (Reste INCHANGÉ)
+    // Déconnexion (reste inchangé)
     public function logout(Request $request) {
-        Auth::logout(); //
-        $request->session()->invalidate(); //
-        $request->session()->regenerateToken(); //
-        return redirect('/'); //
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect('/');
     }
 }
