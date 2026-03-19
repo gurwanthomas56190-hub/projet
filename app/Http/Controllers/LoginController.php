@@ -11,23 +11,23 @@ class LoginController extends Controller
 {
     // Affiche la page de connexion OU connecte automatiquement via l'AD
     public function showLoginForm() {
-    
-    // TRICHE DE DÉVELOPPEMENT : Faux SSO invisible
-    // Si l'application est en mode "local" (voir fichier .env)
-    if (app()->environment('local')) {
         
-        // On récupère votre compte dans la base locale (remplacez 'g.thomas' par votre vrai identifiant)
-        $user = \App\Models\User::where('samaccountname', 'g.thomas')->first();
-        
-        if ($user) {
-            \Illuminate\Support\Facades\Auth::login($user);
-            return redirect()->intended('/');
+        // TRICHE DE DÉVELOPPEMENT (Sans base de données)
+        if (app()->environment('local')) {
+            
+            // On cherche directement votre compte Administrateur dans l'Active Directory
+            // Remplacez 'Administrateur' par votre identifiant si besoin (ex: 'g.thomas')
+            $user = \App\Ldap\User::where('samaccountname', 'Administrateur')->first();
+            
+            if ($user) {
+                // On connecte directement l'utilisateur LDAP
+                \Illuminate\Support\Facades\Auth::login($user);
+                return redirect()->intended('/');
+            }
         }
-    }
 
-    // Le vrai code pour la production (quand ce ne sera plus en local)
-    // On affiche la page normale
-    return view('login');
+        // Si on n'est pas en local ou que la triche échoue, on affiche le formulaire normal
+        return view('login');
     }
 
 
