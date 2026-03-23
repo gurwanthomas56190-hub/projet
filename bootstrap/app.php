@@ -1,5 +1,8 @@
-// bootstrap/app.php
+<?php
 
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
 use LdapRecord\Laravel\Middleware\WindowsAuthenticate;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -9,13 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Ajoute cette ligne dans le groupe 'web'
+        // Activation du SSO pour les routes Web
         $middleware->web(append: [
             WindowsAuthenticate::class,
         ]);
-        
-        // Indique à Laravel de faire confiance au proxy (Nginx) pour lire les headers
-        $middleware->trustProxies(at: '*'); 
+
+        // IMPORTANT : Autorise Laravel à lire les headers envoyés par ton Nginx (Docker)
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

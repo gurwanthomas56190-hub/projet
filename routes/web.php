@@ -1,53 +1,68 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth; // <-- AJOUT IMPORTANT ICI
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\LoginController;
-use App\Ldap\User as LdapUser;
 use App\Http\Controllers\FileManagerController;
+use App\Ldap\User as LdapUser;
 
-// Pages de connexion
+/*
+|--------------------------------------------------------------------------
+| Web Routes - Intranet Silvadec
+|--------------------------------------------------------------------------
+*/
+
+// --- AUTHENTIFICATION MANUELLE (Fallback / Hors-Domaine) ---
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// Route de la page d'accueil
-Route::get('/', function () {
-    return view('welcome');
-})->middleware('auth');
+// --- ROUTES PROTÉGÉES (SSO Kerberos & Auth LDAP) ---
+// Toutes les routes à l'intérieur de ce groupe nécessitent d'être connecté.
+// Le SSO configuré dans bootstrap/app.php connectera l'utilisateur automatiquement ici.
+Route::middleware('auth')->group(function () {
 
-// La page Annuaire
-Route::get('/annuaire', function () {
-    $users = LdapUser::whereHas('mail')->get()->sortBy(function($user) {
-        return $user->getFirstAttribute('cn'); 
+    // Page d'accueil de l'intranet
+    Route::get('/', function () {
+        return view('welcome');
+    })->name('home');
+
+    // Annuaire LDAP : Récupère les utilisateurs ayant un mail et trie par nom (CN)
+    Route::get('/annuaire', function () {
+        $users = LdapUser::whereHas('mail')->get()->sortBy(function($user) {
+            return $user->getFirstAttribute('cn'); 
+        });
+
+        return view('annuaire', [
+            'users' => $users
+        ]);
+    })->name('annuaire');
+
+    // Page Planning
+    Route::get('/planning', function () {
+        return view('planning');
+    })->name('planning');
+
+    // Support Informatique : Restriction stricte à l'utilisateur "Administrateur"
+    Route::get('/support_informatique', function () {
+        $user = Auth::user();
+        
+        // Vérification du sAMAccountName de l'utilisateur AD connecté
+        if ($user->getFirstAttribute('samaccountname') !== 'Administrateur') {
+            abort(403, 'Accès non autorisé : Réservé à l\'administrateur du domaine.');
+        }
+        
+        return view('support_informatique');
+    })->name('support');
+
+    // --- GESTIONNAIRE DE FICHIERS ---
+    // Utilisation d'un préfixe pour regrouper les routes de fichiers
+    Route::prefix('fichiers')->name('files.')->group(function () {
+        Route::get('/', [FileManagerController::class, 'index'])->name('index');
+        Route::get('/download', [FileManagerController::class, 'download'])->name('download');
+        Route::post('/upload', [FileManagerController::class, 'store'])->name('store');
+        Route::delete('/delete', [FileManagerController::class, 'destroy'])->name('destroy');
+        Route::post('/mkdir', [FileManagerController::class, 'makeDirectory'])->name('mkdir');
     });
 
-    return view('annuaire', [
-        'users' => $users
-    ]);
-})->middleware('auth');
-
-// La page Planning (On garde uniquement la version protégée par 'auth')
-Route::get('/planning', function () {
-    return view('planning');
-})->middleware('auth');
-
-// La page Support Informatique (Réservée à l'administrateur)
-Route::get('/support_informatique', function () {
-    // On vérifie si l'utilisateur est connecté et s'il est admin
-    if (!Auth::check() || Auth::user()->getFirstAttribute('samaccountname') !== 'Administrateur') {
-        abort(403, 'Accès non autorisé.'); // Renvoie une erreur 403 (Accès refusé)
-    }
-    
-    // On commente le dd() qui servait aux tests, et on retourne la vue
-    // dd( App\Ldap\User::whereHas('mail')->first()->getAttributes() ); 
-    
-    return view('support_informatique'); // ou l'appel à votre contrôleur
-})->middleware('auth');
-
-// Serveur de fichiers
-Route::get('/fichiers', [FileManagerController::class, 'index'])->name('files.index')->middleware('auth');
-Route::get('/fichiers/download', [FileManagerController::class, 'download'])->name('files.download')->middleware('auth');
-Route::post('/fichiers/upload', [FileManagerController::class, 'store'])->name('files.store'); // Correction: j'ai enlevé App\Http\Controllers\ car il est déjà importé en haut
-Route::delete('/fichiers/delete', [FileManagerController::class, 'destroy'])->name('files.destroy')->middleware('auth');
-Route::post('/fichiers/mkdir', [FileManagerController::class, 'makeDirectory'])->name('files.mkdir')->middleware('auth');
+});
