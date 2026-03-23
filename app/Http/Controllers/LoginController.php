@@ -10,7 +10,7 @@ use App\Models\User as LocalUser;  // <-- Pour connecter l'utilisateur dans Lara
 class LoginController extends Controller
 {
     // Affiche la page de connexion OU connecte automatiquement via l'AD
-    //public function showLoginForm() {
+    public function showLoginForm() {
         
         // TRICHE DE DÉVELOPPEMENT (Sans base de données)
         //if (app()->environment('local')) {
@@ -28,7 +28,8 @@ class LoginController extends Controller
 
         // Si on n'est pas en local ou que la triche échoue, on affiche le formulaire normal
         //return view('login');
-    //}
+        return view('login');
+    }
 
 
     // Gère la tentative de connexion manuelle (reste inchangé)
