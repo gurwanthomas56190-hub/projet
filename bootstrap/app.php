@@ -1,8 +1,6 @@
-<?php
+// bootstrap/app.php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Exceptions;
-use Illuminate\Foundation\Configuration\Middleware;
+use LdapRecord\Laravel\Middleware\WindowsAuthenticate;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -10,9 +8,15 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        //
+    ->withMiddleware(function (Middleware $middleware) {
+        // Ajoute cette ligne dans le groupe 'web'
+        $middleware->web(append: [
+            WindowsAuthenticate::class,
+        ]);
+        
+        // Indique à Laravel de faire confiance au proxy (Nginx) pour lire les headers
+        $middleware->trustProxies(at: '*'); 
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();

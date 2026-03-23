@@ -1,24 +1,9 @@
-<?php
+// app/Providers/AppServiceProvider.php
 
-namespace App\Providers;
+use LdapRecord\Laravel\Middleware\WindowsAuthenticate;
 
-use Illuminate\Support\ServiceProvider;
-
-class AppServiceProvider extends ServiceProvider
+public function boot(): void
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        //
-    }
-
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
-    {
-        //
-    }
+    // On dit au middleware de regarder notre header personnalisé
+    WindowsAuthenticate::serverKey('HTTP_X_REMOTE_USER');
 }
