@@ -10,25 +10,25 @@ use App\Models\User as LocalUser;  // <-- Pour connecter l'utilisateur dans Lara
 class LoginController extends Controller
 {
     // Affiche la page de connexion OU connecte automatiquement via l'AD
-    public function showLoginForm() {
+    //public function showLoginForm() {
         
         // TRICHE DE DÉVELOPPEMENT (Sans base de données)
-        if (app()->environment('local')) {
+        //if (app()->environment('local')) {
             
             // On cherche directement votre compte Administrateur dans l'Active Directory
             // Remplacez 'Administrateur' par votre identifiant si besoin (ex: 'g.thomas')
-            $user = \App\Ldap\User::where('samaccountname', 'Administrateur')->first();
+            //$user = \App\Ldap\User::where('samaccountname', 'Administrateur')->first();
             
-            if ($user) {
+            //if ($user) {
                 // On connecte directement l'utilisateur LDAP
-                \Illuminate\Support\Facades\Auth::login($user);
-                return redirect()->intended('/');
-            }
-        }
+                //\Illuminate\Support\Facades\Auth::login($user);
+                //return redirect()->intended('/');
+            //}
+        //}
 
         // Si on n'est pas en local ou que la triche échoue, on affiche le formulaire normal
-        return view('login');
-    }
+        //return view('login');
+    //}
 
 
     // Gère la tentative de connexion manuelle (reste inchangé)
