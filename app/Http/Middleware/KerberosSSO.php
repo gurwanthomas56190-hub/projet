@@ -23,11 +23,14 @@ class KerberosSSO
             
             // Si l'en-tête est vide, on affiche la vraie URL qui bloque !
             if (!$remoteUser) {
+                // On vérifie si le navigateur a envoyé un ticket secret
+                $ticket = $request->header('X-Auth-Header');
+                $messageTicket = $ticket ? "OUI ! Il a envoyé : " . substr($ticket, 0, 20) . "..." : "NON (Vide ! Le navigateur refuse d'envoyer le ticket)";
+
                 dd(
-                    "ÉTAPE 1 (ÉCHEC) : Nginx n'a pas envoyé l'identifiant.",
-                    "URL demandée : " . $request->url(),
-                    "Avez-vous bien utilisé le nom de domaine (http://intranet.silvadec.local) et non l'adresse IP ?",
-                    "Voici ce que Laravel a reçu :",
+                    "ÉTAPE 1 (ÉCHEC) : Nginx a envoyé une identité vide.",
+                    "Le navigateur a-t-il envoyé un ticket Kerberos ? -> " . $messageTicket,
+                    "En-têtes reçus :",
                     $request->headers->all()
                 );
             }
