@@ -6,6 +6,9 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\FileManagerController;
 use App\Ldap\User as LdapUser;
 
+Route::get('/test-sso', function () {
+    dd($_SERVER);
+});
 // --- Authentification Manuelle ---
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
