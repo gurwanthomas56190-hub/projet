@@ -12,12 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Activation du SSO pour les routes Web
+        // Active le SSO sur le Web
         $middleware->web(append: [
             WindowsAuthenticate::class,
         ]);
 
-        // IMPORTANT : Autorise Laravel à lire les headers envoyés par ton Nginx (Docker)
+        // Trust all proxies (nécessaire pour Docker/Nginx)
         $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions) {
