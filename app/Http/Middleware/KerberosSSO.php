@@ -11,35 +11,41 @@ class KerberosSSO
 {
     public function handle(Request $request, Closure $next)
     {
+        // 1. On ignore complètement les requêtes parasites du navigateur (icônes, etc.)
+        if ($request->is('favicon.ico') || $request->is('build/*') || $request->is('*.css')) {
+            return $next($request);
+        }
+
         // On ne fait ça que si l'utilisateur n'est pas déjà connecté
         if (!Auth::check()) {
             
-            // 1. Lecture de l'en-tête
             $remoteUser = $request->header('X-Remote-User');
             
+            // Si l'en-tête est vide, on affiche la vraie URL qui bloque !
             if (!$remoteUser) {
-                dd("ÉTAPE 1 (ÉCHEC) : L'en-tête X-Remote-User a disparu ! Voici ce que Laravel reçoit :", $request->headers->all());
+                dd(
+                    "ÉTAPE 1 (ÉCHEC) : Nginx n'a pas envoyé l'identifiant.",
+                    "URL demandée : " . $request->url(),
+                    "Avez-vous bien utilisé le nom de domaine (http://intranet.silvadec.local) et non l'adresse IP ?",
+                    "Voici ce que Laravel a reçu :",
+                    $request->headers->all()
+                );
             }
 
-            // 2. Nettoyage du nom
             $username = explode('@', $remoteUser)[0];
-
-            // 3. Recherche dans l'AD
             $user = LdapUser::where('samaccountname', $username)->first();
             
             if (!$user) {
-                dd("ÉTAPE 2 (ÉCHEC) : L'identifiant '$username' est introuvable dans l'Active Directory.");
+                dd("ÉTAPE 2 (ÉCHEC) : L'identifiant '$username' est introuvable dans l'AD.");
             }
 
-            // 4. Connexion Laravel
             Auth::login($user);
             
             if (!Auth::check()) {
-                dd("ÉTAPE 3 (ÉCHEC) : Utilisateur trouvé dans l'AD, mais Laravel refuse d'ouvrir la session.");
+                dd("ÉTAPE 3 (ÉCHEC) : Session refusée par Laravel.");
             }
 
-            // Si on arrive ici, tout a marché !
-            dd("ÉTAPE 4 (SUCCÈS) : Vous êtes bien connecté en tant que '$username'. Le SSO fonctionne !");
+            dd("ÉTAPE 4 (SUCCÈS) : Vous êtes connecté en tant que '$username'.");
         }
 
         return $next($request);
