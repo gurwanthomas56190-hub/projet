@@ -3,7 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use LdapRecord\Laravel\Middleware\WindowsAuthenticate;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,18 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        
+        // 1. On accepte les en-têtes (headers) envoyés par Nginx (notre Reverse Proxy)
+        $middleware->trustProxies(at: '*');
+
+        // 2. On ajoute notre filtre SSO personnalisé pour lire l'identifiant
         $middleware->web(append: [
             \App\Http\Middleware\KerberosSSO::class,
         ]);
-    })
-    ->withMiddleware(function (Middleware $middleware) {
-        // Active le SSO sur le Web
-        $middleware->web(append: [
-            WindowsAuthenticate::class,
-        ]);
-
-        // Trust all proxies (nécessaire pour Docker/Nginx)
-        $middleware->trustProxies(at: '*');
+        
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
