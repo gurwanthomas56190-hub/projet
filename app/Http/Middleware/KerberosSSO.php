@@ -11,25 +11,35 @@ class KerberosSSO
 {
     public function handle(Request $request, Closure $next)
     {
-        // Si l'utilisateur n'est pas déjà connecté dans Laravel
+        // On ne fait ça que si l'utilisateur n'est pas déjà connecté
         if (!Auth::check()) {
             
-            // On récupère l'identifiant transmis par le Reverse Proxy Nginx
+            // 1. Lecture de l'en-tête
             $remoteUser = $request->header('X-Remote-User');
-
-            if ($remoteUser) {
-                // Le nom est souvent sous la forme "identifiant@DOMAINE.LOCAL"
-                // On extrait juste l'identifiant "samaccountname"
-                $username = explode('@', $remoteUser)[0];
-
-                // On cherche l'utilisateur correspondant dans l'Active Directory via le modèle LDAP
-                $user = LdapUser::where('samaccountname', $username)->first();
-
-                if ($user) {
-                    // On force la connexion de l'utilisateur dans Laravel
-                    Auth::login($user);
-                }
+            
+            if (!$remoteUser) {
+                dd("ÉTAPE 1 (ÉCHEC) : L'en-tête X-Remote-User a disparu ! Voici ce que Laravel reçoit :", $request->headers->all());
             }
+
+            // 2. Nettoyage du nom
+            $username = explode('@', $remoteUser)[0];
+
+            // 3. Recherche dans l'AD
+            $user = LdapUser::where('samaccountname', $username)->first();
+            
+            if (!$user) {
+                dd("ÉTAPE 2 (ÉCHEC) : L'identifiant '$username' est introuvable dans l'Active Directory.");
+            }
+
+            // 4. Connexion Laravel
+            Auth::login($user);
+            
+            if (!Auth::check()) {
+                dd("ÉTAPE 3 (ÉCHEC) : Utilisateur trouvé dans l'AD, mais Laravel refuse d'ouvrir la session.");
+            }
+
+            // Si on arrive ici, tout a marché !
+            dd("ÉTAPE 4 (SUCCÈS) : Vous êtes bien connecté en tant que '$username'. Le SSO fonctionne !");
         }
 
         return $next($request);
