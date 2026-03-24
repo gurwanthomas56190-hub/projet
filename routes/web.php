@@ -6,10 +6,6 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\FileManagerController;
 use App\Ldap\User as LdapUser;
 
-Route::get('/test-sso', function (\Illuminate\Http\Request $request) {
-    // Cette ligne va afficher tous les en-têtes reçus par Laravel (dont l'identifiant SSO)
-    dd($request->headers->all());
-});
 // --- Authentification Manuelle ---
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
