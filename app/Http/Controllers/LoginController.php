@@ -11,24 +11,13 @@ class LoginController extends Controller
 {
     // Affiche la page de connexion OU connecte automatiquement via l'AD
     public function showLoginForm() {
-        
-        // TRICHE DE DÉVELOPPEMENT (Sans base de données)
-        //if (app()->environment('local')) {
-            
-            // On cherche directement votre compte Administrateur dans l'Active Directory
-            // Remplacez 'Administrateur' par votre identifiant si besoin (ex: 'g.thomas')
-            //$user = \App\Ldap\User::where('samaccountname', 'Administrateur')->first();
-            
-            //if ($user) {
-                // On connecte directement l'utilisateur LDAP
-                //\Illuminate\Support\Facades\Auth::login($user);
-                //return redirect()->intended('/');
-            //}
-        //}
-
-        // Si on n'est pas en local ou que la triche échoue, on affiche le formulaire normal
-        //return view('login');
-        return view('login');
+    // Si le middleware SSO a déjà connecté l'utilisateur, on le redirige à l'accueil
+    if (Auth::check()) {
+        return redirect()->intended('/');
+    }
+    
+    // Sinon, on affiche le formulaire normal en solution de secours
+    return view('login');
     }
 
 
