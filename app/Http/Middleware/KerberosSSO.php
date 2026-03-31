@@ -11,46 +11,32 @@ class KerberosSSO
 {
     public function handle(Request $request, Closure $next)
     {
-        // 1. On ignore complètement les requêtes parasites du navigateur (icônes, etc.)
+        // On ignore les requêtes parasites (icônes, CSS) pour ne pas surcharger l'AD
         if ($request->is('favicon.ico') || $request->is('build/*') || $request->is('*.css')) {
             return $next($request);
         }
 
-        // On ne fait ça que si l'utilisateur n'est pas déjà connecté
+        // Si l'utilisateur n'est pas encore connecté à Laravel
         if (!Auth::check()) {
             
+            // On récupère l'identité validée par Nginx
             $remoteUser = $request->header('X-Remote-User');
             
-            // Si l'en-tête est vide, on affiche la vraie URL qui bloque !
-            if (!$remoteUser) {
-                // On vérifie si le navigateur a envoyé un ticket secret
-                $ticket = $request->header('X-Auth-Header');
-                $messageTicket = $ticket ? "OUI ! Il a envoyé : " . substr($ticket, 0, 20) . "..." : "NON (Vide ! Le navigateur refuse d'envoyer le ticket)";
+            if ($remoteUser) {
+                // On nettoie le nom (ex: gurwan@SILVADEC.LOCAL -> gurwan)
+                $username = explode('@', $remoteUser)[0];
 
-                dd(
-                    "ÉTAPE 1 (ÉCHEC) : Nginx a envoyé une identité vide.",
-                    "Le navigateur a-t-il envoyé un ticket Kerberos ? -> " . $messageTicket,
-                    "En-têtes reçus :",
-                    $request->headers->all()
-                );
+                // On cherche l'utilisateur dans l'Active Directory
+                $user = LdapUser::where('samaccountname', $username)->first();
+                
+                // Si on le trouve, on le connecte silencieusement !
+                if ($user) {
+                    Auth::login($user);
+                }
             }
-
-            $username = explode('@', $remoteUser)[0];
-            $user = LdapUser::where('samaccountname', $username)->first();
-            
-            if (!$user) {
-                dd("ÉTAPE 2 (ÉCHEC) : L'identifiant '$username' est introuvable dans l'AD.");
-            }
-
-            Auth::login($user);
-            
-            if (!Auth::check()) {
-                dd("ÉTAPE 3 (ÉCHEC) : Session refusée par Laravel.");
-            }
-
-            dd("ÉTAPE 4 (SUCCÈS) : Vous êtes connecté en tant que '$username'.");
         }
 
+        // On laisse ENFIN la requête continuer vers la vraie page web !
         return $next($request);
     }
 }
