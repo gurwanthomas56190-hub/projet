@@ -6,12 +6,33 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\FileManagerController;
 use App\Ldap\User as LdapUser;
 
+// ==========================================
+// ROUTES LIBRES (Non protégées)
+// ==========================================
+
 // --- Authentification Manuelle ---
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// --- Routes Protégées (SSO Kerberos) ---
+// --- La Porte VIP Kerberos (Doit être libre d'accès !) ---
+Route::get('/sso-login', function (\Illuminate\Http\Request $request) {
+    $remoteUser = $request->header('X-Remote-User');
+    if ($remoteUser) {
+        $username = explode('@', $remoteUser)[0];
+        $user = LdapUser::where('samaccountname', $username)->first();
+        if ($user) {
+            Auth::login($user);
+            return redirect('/');
+        }
+    }
+    return redirect('/login')->withErrors(['sso' => 'Échec de la connexion réseau. Avez-vous un ticket Kerberos ?']);
+})->name('sso.login');
+
+
+// ==========================================
+// ROUTES PROTÉGÉES (Réservées aux connectés)
+// ==========================================
 Route::middleware('auth')->group(function () {
 
     Route::get('/', function () {
@@ -35,19 +56,7 @@ Route::middleware('auth')->group(function () {
         }
         return view('support_informatique');
     })->name('support');
-// --- La Porte VIP Kerberos ---
-Route::get('/sso-login', function (\Illuminate\Http\Request $request) {
-    $remoteUser = $request->header('X-Remote-User');
-    if ($remoteUser) {
-        $username = explode('@', $remoteUser)[0];
-        $user = LdapUser::where('samaccountname', $username)->first();
-        if ($user) {
-            Auth::login($user);
-            return redirect('/');
-        }
-    }
-    return redirect('/login')->withErrors(['sso' => 'Échec de la connexion réseau.']);
-})->name('sso.login');
+
     // Gestionnaire de fichiers
     Route::prefix('fichiers')->name('files.')->group(function () {
         Route::get('/', [FileManagerController::class, 'index'])->name('index');

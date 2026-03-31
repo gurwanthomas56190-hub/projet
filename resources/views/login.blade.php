@@ -7,10 +7,10 @@
 </head>
 <body style="display:flex; align-items:center; justify-content:center; height:100vh;">
     <div class="card" style="width: 400px;">
+        <h2>Connexion Intranet</h2>
         <a href="{{ route('sso.login') }}" style="display:block; background-color:#28a745; color:white; padding:10px; text-align:center; margin-bottom:20px; text-decoration:none; border-radius:5px;">
     🔑 Connexion Automatique (Réseau Silvadec)
         </a>
-        <h2>Connexion Intranet</h2>
         <form action="{{ url('/login') }}" method="POST">
             @csrf
             <div style="margin-bottom: 1rem;">
