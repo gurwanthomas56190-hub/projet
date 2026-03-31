@@ -16,9 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         // 2. On ajoute notre filtre SSO personnalisé pour lire l'identifiant
-        $middleware->web(append: [
-            \App\Http\Middleware\KerberosSSO::class,
-        ]);
+        //$middleware->web(append: [
+        //    \App\Http\Middleware\KerberosSSO::class,
+        //]);
         
     })
     ->withExceptions(function (Exceptions $exceptions) {

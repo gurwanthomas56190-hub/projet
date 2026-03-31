@@ -35,7 +35,19 @@ Route::middleware('auth')->group(function () {
         }
         return view('support_informatique');
     })->name('support');
-
+// --- La Porte VIP Kerberos ---
+Route::get('/sso-login', function (\Illuminate\Http\Request $request) {
+    $remoteUser = $request->header('X-Remote-User');
+    if ($remoteUser) {
+        $username = explode('@', $remoteUser)[0];
+        $user = LdapUser::where('samaccountname', $username)->first();
+        if ($user) {
+            Auth::login($user);
+            return redirect('/');
+        }
+    }
+    return redirect('/login')->withErrors(['sso' => 'Échec de la connexion réseau.']);
+})->name('sso.login');
     // Gestionnaire de fichiers
     Route::prefix('fichiers')->name('files.')->group(function () {
         Route::get('/', [FileManagerController::class, 'index'])->name('index');
