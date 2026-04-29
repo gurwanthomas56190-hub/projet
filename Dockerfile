@@ -1,33 +1,30 @@
-# Utilisation de l'image PHP officielle avec FPM
 FROM php:8.2-fpm
 
-# Installation des dépendances système et des extensions PHP
+# Installation des dépendances système (incluant Node.js pour Vite)
 RUN apt-get update && apt-get install -y \
-    libldap2-dev \
-    libsqlite3-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    && docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu/ \
-    && docker-php-ext-install ldap pdo_sqlite
+    git curl zip unzip libldap2-dev libsqlite3-dev \
+    && curl -sL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Installation de Composer
+# Installation des extensions PHP
+RUN docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu/ \
+    && docker-php-ext-install ldap pdo_sqlite bcmath
+
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Définition du répertoire de travail
 WORKDIR /var/www
-
-# Copie des fichiers du projet
 COPY . .
 
-# Installation des dépendances PHP
+# Installation et build automatique (en suivant votre script 'setup' du composer.json)
 RUN composer install --no-dev --optimize-autoloader
+RUN npm install && npm run build
 
-# Ajustement des permissions pour Laravel
-RUN chown -妥 R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-# Exposition du port (interne au conteneur)
-EXPOSE 9000
+# Script d'entrée pour finaliser la config au démarrage
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"]
