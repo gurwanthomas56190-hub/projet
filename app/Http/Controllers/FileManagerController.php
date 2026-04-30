@@ -40,7 +40,7 @@ class FileManagerController extends Controller
                 'timestamp' => Storage::disk('nas')->lastModified($f)
             ];
         }
-        usort($folders, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
+        #usort($folders, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
 
         // Récupération et Tri des FICHIERS par date
         $rawFiles = Storage::disk('nas')->files($storagePath);
@@ -61,13 +61,30 @@ class FileManagerController extends Controller
                 'ext' => strtolower(pathinfo($f, PATHINFO_EXTENSION))
             ];
         }
-        usort($files, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
+        #usort($files, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
 
         return view('filemanager', compact('folders', 'files', 'currentFolder', 'userService', 'safeRelativePath', 'parentPath', 'showBackBtn'));
     }
 
     // Création de dossier
-    public function makeDirectory(Request $request)
+    public function mak
+Silvadec - Intranet
+Bienvenue, thomas gurwan
+
+    Accueil
+    Actualités
+    Annuaire
+    Planning
+
+📁 Serveur de fichiers : Administration
+
+Dossier actuel : Administration
+📁 Dossier:
+📄 Fichier:
+Nom 	Taille / Type 	Modifié le 	Actions
+
+© 2026 - Silvadec - Portail Interne Confidentiel
+eDirectory(Request $request)
     {
         $user = Auth::user();
         $userService = ucfirst(strtolower($user->getService()));
@@ -85,7 +102,24 @@ class FileManagerController extends Controller
         return back()->with('success', 'Dossier créé avec succès.');
     }
 
-    public function download(Request $request)
+    public function dow
+Silvadec - Intranet
+Bienvenue, thomas gurwan
+
+    Accueil
+    Actualités
+    Annuaire
+    Planning
+
+📁 Serveur de fichiers : Administration
+
+Dossier actuel : Administration
+📁 Dossier:
+📄 Fichier:
+Nom 	Taille / Type 	Modifié le 	Actions
+
+© 2026 - Silvadec - Portail Interne Confidentiel
+nload(Request $request)
     {
         $path = $request->query('path'); 
         if (!$path || !Storage::disk('nas')->exists($path)) abort(404);
