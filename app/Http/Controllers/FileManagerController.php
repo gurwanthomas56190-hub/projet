@@ -13,13 +13,21 @@ class FileManagerController extends Controller
         $user = Auth::user(); 
         if (!$user) return redirect('/login');
 
-        // On récupère le service exact (ex: "Administration")
-        $userService = $user->service; 
+        // TENTATIVE DE RÉCUPÉRATION DU SERVICE (on teste les deux méthodes possibles)
+        $rawService = $user->service ?? (method_exists($user, 'getService') ? $user->getService() : '');
+        
+        // Nettoyage : on enlève les espaces et on met la 1ère lettre en majuscule
+        $userService = ucfirst(strtolower(trim($rawService))); 
         
         $servicesAutorises = ['Administration', 'Informatique', 'Marketing', 'Production'];
-        $baseFolder = in_array($userService, $servicesAutorises) ? $userService : null;
+        
+        // On vérifie si le service fait partie de la liste autorisée
+        if (!in_array($userService, $servicesAutorises)) {
+            abort(403, "Accès refusé : Votre service détecté est '{$userService}', mais il n'est pas autorisé dans la liste.");
+        }
 
-        if ($baseFolder === null) abort(403, "Accès refusé.");
+        // Le dossier de base sur Windows doit correspondre au service (ex: "Administration")
+        $baseFolder = $userService;
 
         $requestedPath = $request->query('path', $baseFolder);
         $safeRelativePath = str_replace('..', '', (string)$requestedPath);
@@ -43,7 +51,7 @@ class FileManagerController extends Controller
             ];
         }
 
-        // Récupération des FICHIERS avec calcul de taille
+        // Récupération des FICHIERS
         $rawFiles = Storage::disk('nas')->files($storagePath);
         $files = [];
         foreach ($rawFiles as $f) {
@@ -66,21 +74,16 @@ class FileManagerController extends Controller
         return view('filemanager', compact('folders', 'files', 'currentFolder', 'userService', 'safeRelativePath', 'parentPath', 'showBackBtn'));
     }
 
-    // Création de dossier
     public function makeDirectory(Request $request)
     {
         $user = Auth::user();
-        $userService = $user->service;
+        $userService = ucfirst(strtolower(trim($user->service ?? $user->getService())));
         $path = $request->input('path');
         $folderName = $request->input('folder_name');
-
         if (!str_starts_with($path, $userService)) return back()->with('error', 'Action non autorisée.');
-        
         $request->validate(['folder_name' => 'required|string|max:255']);
         $fullPath = $path . '/' . $folderName;
-
         if (Storage::disk('nas')->exists($fullPath)) return back()->with('error', 'Ce dossier existe déjà.');
-
         Storage::disk('nas')->makeDirectory($fullPath);
         return back()->with('success', 'Dossier créé avec succès.');
     }
@@ -95,10 +98,9 @@ class FileManagerController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        $userService = $user->service;
+        $userService = ucfirst(strtolower(trim($user->service ?? $user->getService())));
         $path = $request->input('path');
         if (!str_starts_with($path, $userService)) return back()->with('error', 'Action non autorisée.');
-
         $request->validate(['file' => 'required|file|max:10240']);
         if ($request->hasFile('file')) {
             $file = $request->file('file');
@@ -111,24 +113,18 @@ class FileManagerController extends Controller
     public function destroy(Request $request)
     {
         $user = Auth::user();
-        $userService = $user->service;
+        $userService = ucfirst(strtolower(trim($user->service ?? $user->getService())));
         $path = $request->input('path');
-
         if (!str_starts_with($path, $userService) || !Storage::disk('nas')->exists($path)) {
-            return back()->with('error', "Action impossible ou élément introuvable.");
+            return back()->with('error', "Action impossible.");
         }
-
         $parent = dirname($path);
         $directories = Storage::disk('nas')->directories($parent);
-        
         if (in_array($path, $directories)) {
             Storage::disk('nas')->deleteDirectory($path);
-            $msg = "Le dossier a été supprimé.";
         } else {
             Storage::disk('nas')->delete($path);
-            $msg = "Le fichier a été supprimé.";
         }
-
-        return back()->with('success', $msg);
+        return back()->with('success', 'Supprimé avec succès.');
     }
 }
