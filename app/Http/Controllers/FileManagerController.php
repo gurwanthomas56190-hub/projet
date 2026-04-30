@@ -67,24 +67,7 @@ class FileManagerController extends Controller
     }
 
     // Création de dossier
-    public function mak
-Silvadec - Intranet
-Bienvenue, thomas gurwan
-
-    Accueil
-    Actualités
-    Annuaire
-    Planning
-
-📁 Serveur de fichiers : Administration
-
-Dossier actuel : Administration
-📁 Dossier:
-📄 Fichier:
-Nom 	Taille / Type 	Modifié le 	Actions
-
-© 2026 - Silvadec - Portail Interne Confidentiel
-eDirectory(Request $request)
+    public function makeDirectory(Request $request)
     {
         $user = Auth::user();
         $userService = ucfirst(strtolower($user->getService()));
@@ -102,24 +85,7 @@ eDirectory(Request $request)
         return back()->with('success', 'Dossier créé avec succès.');
     }
 
-    public function dow
-Silvadec - Intranet
-Bienvenue, thomas gurwan
-
-    Accueil
-    Actualités
-    Annuaire
-    Planning
-
-📁 Serveur de fichiers : Administration
-
-Dossier actuel : Administration
-📁 Dossier:
-📄 Fichier:
-Nom 	Taille / Type 	Modifié le 	Actions
-
-© 2026 - Silvadec - Portail Interne Confidentiel
-nload(Request $request)
+    public function download(Request $request)
     {
         $path = $request->query('path'); 
         if (!$path || !Storage::disk('nas')->exists($path)) abort(404);
