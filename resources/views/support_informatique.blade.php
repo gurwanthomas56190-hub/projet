@@ -15,7 +15,7 @@
             {{-- Utilisation de votre classe existante "quick-links" --}}
             <ul class="quick-links">
                 <li>
-                    <a href="http://192.168.2.102/zabbix" target="_blank" rel="noopener noreferrer">
+                    <a href="http://192.168.2.103/zabbix" target="_blank" rel="noopener noreferrer">
                         {{-- Correction de la balise image avec la fonction asset() --}}
                         <img src="{{ asset('images.png') }}" alt="Zabbix" style="height: 1.2em; vertical-align: middle; margin-right: 5px;"> 
                         Zabbix

@@ -1,53 +1,48 @@
 @extends('layouts.app')
 
-@section('title', 'Annuaire')
-
 @section('content')
-<div class="container full-width"> 
-    <main>
-        
-        <div class="card">
-            <h2>📞 Annuaire des collaborateurs</h2>
-            <p>Retrouvez facilement les coordonnées de vos collègues (données synchronisées avec l'Active Directory).</p>
-            
-            <table class="styled-table">
-                <thead>
-                    <tr>
-                        <th>Nom & Prénom</th>
-                        <th>Téléphone</th>
-                        
-                        <th>Email</th>
-                        <th>Service</th> 
-                        <th>Site</th>
-                        
-                        
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($users as $user)
-                        <tr>
-                            <td><strong>{{ $user->getFirstAttribute('cn') ?? 'Nom inconnu' }}</strong></td>
+<div class="container">
+    <h1>Annuaire du personnel Silvadec</h1>
+
+    {{-- Bouton d'ajout visible uniquement par les admins --}}
+    @can('gerer-annuaire')
+        <a href="{{ route('annuaire.create') }}" class="btn btn-primary mb-3">Ajouter un employé</a>
+    @endcan
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nom Complet</th>
+                <th>Email</th>
+                <th>Téléphone</th>
+                @can('gerer-annuaire')
+                    <th>Actions</th>
+                @endcan
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($employes as $employe)
+                <tr>
+                    {{-- LdapRecord retourne souvent les attributs sous forme de tableaux --}}
+                    <td>{{ $employe->getFirstAttribute('cn') }}</td>
+                    <td>{{ $employe->getFirstAttribute('mail') }}</td>
+                    <td>{{ $employe->getFirstAttribute('telephonenumber') }}</td>
+                    
+                    {{-- Actions d'édition/suppression visibles uniquement par les admins --}}
+                    @can('gerer-annuaire')
+                        <td>
+                            <a href="{{ route('annuaire.edit', $employe->getFirstAttribute('samaccountname')) }}" class="btn btn-sm btn-warning">Modifier</a>
                             
-                            
-                            <td>{{ $user->getFirstAttribute('telephonenumber') ?? '-' }}</td>
-                            
-                            <td>
-                                <a href="mailto:{{ $user->getFirstAttribute('mail') }}">
-                                    {{ $user->getFirstAttribute('mail') }}
-                                </a>   
-                            </td>
-                            <td>{{ $user->getService() }}</td>
-                            <td>{{ $user->getSite() }}</td>                           
-                        </tr>
-                        
-                    @empty
-                        <tr>
-                            <td colspan="4" style="text-align: center;">Aucun utilisateur trouvé dans l'Active Directory.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </main>
+                            <form action="{{ route('annuaire.destroy', $employe->getFirstAttribute('samaccountname')) }}" method="POST" style="display:inline;">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Êtes-vous sûr ?')">Supprimer</button>
+                            </form>
+                        </td>
+                    @endcan
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
 </div>
 @endsection
