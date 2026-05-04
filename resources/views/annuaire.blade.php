@@ -17,7 +17,6 @@
                         <th>Téléphone</th>
                         
                         <th>Email</th>
-                        <th>adresse</th>
                         <th>Service</th> 
                         <th>Site</th>
                         
@@ -37,7 +36,6 @@
                                     {{ $user->getFirstAttribute('mail') }}
                                 </a>   
                             </td>
-                            <td>{{ $user->getFirstAttribute('streetaddress') ?? '-' }}</td>
                             <td>{{ $user->getService() }}</td>
                             <td>{{ $user->getSite() }}</td>                           
                         </tr>
