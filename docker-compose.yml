@@ -1,0 +1,40 @@
+services:
+  # L'application Laravel
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel_app
+    volumes:
+      - .:/var/www
+      - nas_share:/mnt/win_share
+    env_file:
+      - .env
+    networks:
+      - laravel_network
+
+  # Le serveur Web Nginx
+  webserver:
+    image: nginx:alpine
+    container_name: laravel_web
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - laravel_network
+    depends_on:
+      - app
+
+networks:
+  laravel_network:
+    driver: bridge
+
+volumes:
+  nas_share:
+    driver_opts:
+      type: cifs
+      # ⚠️ MODIFIEZ les valeurs ci-dessous avec vos informations réelles
+      device: "//${NAS_ADDR}/${NAS_SHARE}"
+      o: "addr=${NAS_ADDR},username=${NAS_USER},password=${NAS_PASSWORD},uid=33,gid=33,file_mode=0775,dir_mode=0775"
