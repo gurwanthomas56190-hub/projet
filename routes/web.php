@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
         return view('welcome');
     })->name('home');
 
+
     // Annuaire : lecture pour tous les utilisateurs authentifiés
     Route::get('/annuaire', [AnnuaireController::class, 'index'])->name('annuaire.index');
 
@@ -49,6 +50,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/annuaire/{samaccountname}/edit', [AnnuaireController::class, 'edit'])->name('annuaire.edit');
     Route::put('/annuaire/{samaccountname}', [AnnuaireController::class, 'update'])->name('annuaire.update');
     Route::delete('/annuaire/{samaccountname}', [AnnuaireController::class, 'destroy'])->name('annuaire.destroy');
+
 
     Route::get('/planning', function () {
         return view('planning');
@@ -69,4 +71,12 @@ Route::middleware('auth')->group(function () {
         Route::delete('/delete', [FileManagerController::class, 'destroy'])->name('destroy');
         Route::post('/mkdir', [FileManagerController::class, 'makeDirectory'])->name('mkdir');
     });
+<<<<<<< HEAD
 });
+=======
+});
+
+Route::resource('annuaire', AnnuaireController::class)->parameters([
+    'annuaire' => 'samaccountname' // On utilise le samaccountname au lieu de l'ID classique pour chercher dans l'AD
+]);
+>>>>>>> 5028e40e076b93492e4b2825febc215237517fd9
