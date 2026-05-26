@@ -16,11 +16,18 @@ class AnnuaireController extends Controller
      */
     public function index()
     {
-        $users = LdapUser::whereHas('mail')->get()->sortBy(function($user) {
-            return $user->getFirstAttribute('cn');
+        // 1. On récupère TOUS les utilisateurs depuis l'AD
+        $tousLesEmployes = LdapUser::get();
+        
+        // 2. On filtre la liste en PHP pour cacher les comptes systèmes de Windows
+        // ATTENTION ICI : On nomme la variable $users pour que ça corresponde à ton fichier Blade !
+        $users = $tousLesEmployes->filter(function ($user) {
+            $username = strtolower($user->getFirstAttribute('samaccountname'));
+            return !in_array($username, ['krbtgt', 'guest', 'invité', 'defaultaccount', 'wdagutilityaccount', 'srv intranet']);
         });
-
-        return view('annuaire', ['users' => $users]);
+        
+        // 3. On envoie la bonne variable 'users' à la vue
+        return view('annuaire', compact('users'));
     }
 
     /**
