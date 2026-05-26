@@ -71,12 +71,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/delete', [FileManagerController::class, 'destroy'])->name('destroy');
         Route::post('/mkdir', [FileManagerController::class, 'makeDirectory'])->name('mkdir');
     });
-<<<<<<< HEAD
-});
-=======
 });
 
 Route::resource('annuaire', AnnuaireController::class)->parameters([
     'annuaire' => 'samaccountname' // On utilise le samaccountname au lieu de l'ID classique pour chercher dans l'AD
 ]);
->>>>>>> 5028e40e076b93492e4b2825febc215237517fd9
+
