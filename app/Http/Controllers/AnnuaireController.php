@@ -10,11 +10,26 @@ class AnnuaireController extends Controller
 {
     public function index()
     {
-        // Récupère les utilisateurs en excluant les comptes systèmes de Windows
-        // CORRECTION : renommage de $employes en $users pour correspondre à la vue Blade
-        $users = LdapUser::whereNotIn('samaccountname', [
-            'krbtgt', 'Guest', 'Invité', 'DefaultAccount', 'WDAGUtilityAccount', 'srv intranet'
-        ])->get();
+        // 1. On récupère tous les utilisateurs de l'Active Directory
+        $tousLesUtilisateurs = LdapUser::get();
+        
+        // 2. On filtre la collection Laravel pour exclure les comptes systèmes Windows
+        $users = $tousLesUtilisateurs->reject(function ($user) {
+            // On récupère le samaccountname en minuscules pour éviter les problèmes de casse
+            $samaccountname = strtolower($user->getFirstAttribute('samaccountname'));
+            
+            $comptesExclus = [
+                'krbtgt', 
+                'guest', 
+                'invité', 
+                'defaultaccount', 
+                'wdagutilityaccount', 
+                'srv_intranet', // Correction de l'espace ici
+                'administrateur' // Optionnel : à ajouter si vous ne voulez pas voir l'admin dans l'annuaire
+            ];
+            
+            return in_array($samaccountname, $comptesExclus);
+        });
         
         return view('annuaire', compact('users'));
     }
