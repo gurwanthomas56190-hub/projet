@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Ldap\User as LdapUser;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Auth;
+use LdapRecord\Models\ActiveDirectory\Group as LdapGroup;
 
 class AnnuaireController extends Controller
 {
@@ -54,22 +55,73 @@ class AnnuaireController extends Controller
     {
         Gate::authorize('gerer-annuaire');
         
-        $user = new LdapUser();
-        $user->cn = $request->input('prenom') . ' ' . $request->input('nom');
-        $user->sn = $request->input('nom');
-        $user->givenname = $request->input('prenom');
-        $user->samaccountname = strtolower(substr($request->input('prenom'), 0, 1) . $request->input('nom'));
+        // 1. Récupération et nettoyage des données de base
+        $nom = str_replace(' ', '', $request->input('nom'));
+        $prenom = str_replace(' ', '', $request->input('prenom'));
+        $ville = $request->input('ville');
+        $service = $request->input('service');
+
+        // 2. Reproduction exacte des variables du script PowerShell
+        $login = strtolower($nom . '.' . $prenom);
+        $email = $login . '@silvadec.com';
+        $upn = $login . '@silvadec.local';
+        $profilPath = "\\\\192.168.2.101\\Profils$\\" . $login;
         
-        if($request->filled('telephone')) {
+        // L'arborescence dynamique (Attention à ce que ces OU existent bien dans Windows !)
+        $ouPath = "OU={$service},OU={$ville},OU=Silvadec,DC=silvadec,DC=local";
+
+        // 3. Sécurité : Vérification d'existence
+        $existingUser = LdapUser::where('samaccountname', $login)->first();
+        if ($existingUser) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['samaccountname' => "Le compte {$login} existe déjà."]);
+        }
+        
+        // 4. Création de l'utilisateur
+        $user = new LdapUser();
+        $user->cn = $nom . ' ' . $prenom; // Le script PS met "$Nom $Prenom"
+        $user->givenname = $prenom;
+        $user->sn = $nom;
+        $user->samaccountname = $login;
+        $user->userprincipalname = $upn;
+        $user->mail = $email;
+        $user->profilepath = $profilPath;
+        
+        if ($request->filled('telephone')) {
             $user->telephonenumber = $request->input('telephone');
         }
-        if($request->filled('email')) {
-            $user->mail = $request->input('email');
+        if ($request->filled('adresse')) {
+            $user->streetaddress = $request->input('adresse');
         }
+
+        // 5. Configuration du mot de passe et des règles du compte
+        $user->unicodepwd = 'Temp1234!';
+        $user->pwdlastset = 0; // "ChangePasswordAtLogon = $true"
+        $user->useraccountcontrol = 512; // "Enabled = $true" (Compte Normal activé)
         
-        $user->save();
+        // On indique à Laravel dans quel dossier placer ce compte
+        $user->inside($ouPath);
         
-        return redirect()->route('annuaire.index')->with('success', 'Employé ajouté avec succès à l\'Active Directory.');
+        try {
+            $user->save();
+
+            // 6. Ajout automatique au groupe de sécurité (ex: GRP_Informatique)
+            $groupeName = "GRP_" . $service;
+            $groupe = LdapGroup::where('cn', $groupeName)->first();
+            
+            if ($groupe) {
+                // Si le groupe existe sur Windows, on ajoute le membre
+                $groupe->members()->attach($user);
+            }
+            
+            return redirect()->route('annuaire.index')->with('success', "Employé ajouté avec succès. Il a été placé dans $ville > $service avec le mot de passe Temp1234!");
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['erreur_ldap' => 'Création refusée par Active Directory. ERREUR : ' . $e->getMessage()]);
+        }
     }
 
     public function edit($samaccountname)
