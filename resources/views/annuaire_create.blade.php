@@ -1,46 +1,42 @@
 @extends('layouts.app')
 
+@section('title', 'Ajouter un employé')
+
 @section('content')
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Ajouter un nouvel employé à l'AD</h4>
+<div class="container full-width">
+    <main>
+        <div class="card">
+            <h2>➕ Ajouter un collaborateur à l'Active Directory</h2>
+            <p>Veuillez remplir les informations du nouvel employé.</p>
+
+            <form action="{{ route('annuaire.store') }}" method="POST" class="styled-form">
+                @csrf
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="prenom"><strong>Prénom *</strong></label><br>
+                    <input type="text" id="prenom" name="prenom" required class="form-control" style="width: 100%; padding: 8px;">
                 </div>
-                <div class="card-body">
-                    <form action="{{ route('annuaire.store') }}" method="POST">
-                        @csrf
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Prénom</label>
-                                <input type="text" name="prenom" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Nom</label>
-                                <input type="text" name="nom" class="form-control" required>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Email professionnel</label>
-                            <input type="email" name="email" class="form-control">
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label">Téléphone</label>
-                            <input type="text" name="telephone" class="form-control">
-                        </div>
-
-                        <div class="d-flex justify-content-end gap-2">
-                            <a href="{{ route('annuaire.index') }}" class="btn btn-secondary">Annuler</a>
-                            <button type="submit" class="btn btn-success">Créer le compte</button>
-                        </div>
-                    </form>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="nom"><strong>Nom *</strong></label><br>
+                    <input type="text" id="nom" name="nom" required class="form-control" style="width: 100%; padding: 8px;">
                 </div>
-            </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="email"><strong>Email</strong></label><br>
+                    <input type="email" id="email" name="email" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="telephone"><strong>Téléphone</strong></label><br>
+                    <input type="text" id="telephone" name="telephone" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">✔️ Créer le compte AD</button>
+                    <a href="{{ route('annuaire.index') }}" class="btn btn-danger" style="margin-left: 10px;">❌ Annuler</a>
+                </div>
+            </form>
         </div>
-    </div>
+    </main>
 </div>
 @endsection

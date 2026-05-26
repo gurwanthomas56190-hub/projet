@@ -1,63 +1,45 @@
 @extends('layouts.app')
 
+@section('title', 'Modifier un employé')
+
 @section('content')
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Annuaire du personnel Silvadec</h1>
-        
-        @can('gerer-annuaire')
-            <a href="{{ route('annuaire.create') }}" class="btn btn-primary">
-                + Ajouter un employé
-            </a>
-        @endcan
-    </div>
+<div class="container full-width">
+    <main>
+        <div class="card">
+            <h2>✏️ Modifier le collaborateur : {{ $employe->getFirstAttribute('cn') }}</h2>
+            <p>Mettez à jour les informations du compte dans l'Active Directory.</p>
 
-    @if(session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
+            {{-- Attention, on envoie le formulaire sur la route 'update' avec la méthode PUT --}}
+            <form action="{{ route('annuaire.update', $employe->getFirstAttribute('samaccountname')) }}" method="POST" class="styled-form">
+                @csrf
+                @method('PUT')
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="prenom"><strong>Prénom *</strong></label><br>
+                    <input type="text" id="prenom" name="prenom" value="{{ $employe->getFirstAttribute('givenname') }}" required class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="nom"><strong>Nom *</strong></label><br>
+                    <input type="text" id="nom" name="nom" value="{{ $employe->getFirstAttribute('sn') }}" required class="form-control" style="width: 100%; padding: 8px;">
+                </div>
 
-    <div class="card shadow">
-        <div class="card-body">
-            <table class="table table-hover table-striped mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Nom Complet</th>
-                        <th>Email</th>
-                        <th>Téléphone</th>
-                        @can('gerer-annuaire')
-                            <th class="text-center">Actions</th>
-                        @endcan
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($employes as $employe)
-                        <tr>
-                            <td class="align-middle">{{ $employe->getFirstAttribute('cn') }}</td>
-                            <td class="align-middle">{{ $employe->getFirstAttribute('mail') }}</td>
-                            <td class="align-middle">{{ $employe->getFirstAttribute('telephonenumber') }}</td>
-                            
-                            @can('gerer-annuaire')
-                                <td class="text-center align-middle">
-                                    <a href="{{ route('annuaire.edit', $employe->getFirstAttribute('samaccountname')) }}" class="btn btn-sm btn-warning">
-                                        Modifier
-                                    </a>
-                                    
-                                    <form action="{{ route('annuaire.destroy', $employe->getFirstAttribute('samaccountname')) }}" method="POST" style="display:inline-block;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer {{ $employe->getFirstAttribute('cn') }} de l\'Active Directory ?')">
-                                            Supprimer
-                                        </button>
-                                    </form>
-                                </td>
-                            @endcan
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="email"><strong>Email</strong></label><br>
+                    <input type="email" id="email" name="email" value="{{ $employe->getFirstAttribute('mail') }}" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="telephone"><strong>Téléphone</strong></label><br>
+                    <input type="text" id="telephone" name="telephone" value="{{ $employe->getFirstAttribute('telephonenumber') }}" class="form-control" style="width: 100%; padding: 8px;">
+                </div>
+
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-warning">💾 Enregistrer les modifications</button>
+                    <a href="{{ route('annuaire.index') }}" class="btn btn-danger" style="margin-left: 10px;">❌ Annuler</a>
+                </div>
+            </form>
         </div>
-    </div>
+    </main>
 </div>
 @endsection
