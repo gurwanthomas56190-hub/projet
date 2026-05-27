@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       network: host
+    image: mon-image-laravel
     container_name: laravel_app
     volumes:
       - .:/var/www
