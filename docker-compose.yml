@@ -1,15 +1,17 @@
 services:
-  # L'application Laravel
   app:
-    image: mon-image-laravel
+    build: .
     container_name: laravel_app
     volumes:
       - .:/var/www
-      - nas_share:/mnt/win_share
     env_file:
       - .env
     networks:
       - laravel_network
+
+networks:
+  laravel_network:
+    driver: bridge
 
   # Le serveur Web Nginx
   webserver:
