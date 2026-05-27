@@ -9,10 +9,6 @@ services:
     networks:
       - laravel_network
 
-networks:
-  laravel_network:
-    driver: bridge
-
   # Le serveur Web Nginx
   webserver:
     image: nginx:alpine
