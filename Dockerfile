@@ -9,7 +9,6 @@ WORKDIR /var/www
 COPY . .
 
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-
 RUN mkdir -p /etc/ldap && echo "TLS_REQCERT never" >> /etc/ldap/ldap.conf
 
 COPY docker-entrypoint.sh /usr/local/bin/
