@@ -12,7 +12,6 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www
 COPY . .
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-RUN echo "TLS_REQCERT never" >> /etc/ldap/ldap.conf
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"]
