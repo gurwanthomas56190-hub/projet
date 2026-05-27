@@ -1,10 +1,7 @@
 services:
   # L'application Laravel
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      network: host
+    network_mode: "host"
     image: mon-image-laravel
     container_name: laravel_app
     volumes:
