@@ -1,7 +1,6 @@
 services:
   # L'application Laravel
   app:
-    network_mode: "host"
     image: mon-image-laravel
     container_name: laravel_app
     volumes:
