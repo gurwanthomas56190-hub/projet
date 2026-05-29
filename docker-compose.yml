@@ -28,10 +28,10 @@ networks:
   laravel_network:
     driver: bridge
 
-volumes:
+olumes:
   nas_share:
     driver_opts:
       type: cifs
-      # ⚠️ MODIFIEZ les valeurs ci-dessous avec vos informations réelles
       device: "//${NAS_ADDR}/${NAS_SHARE}"
-      o: "addr=${NAS_ADDR},username=${NAS_USER},password=${NAS_PASSWORD},uid=33,gid=33,file_mode=0775,dir_mode=0775"
+      # Ajout de domain=... et vers=3.0
+      o: "addr=${NAS_ADDR},username=${NAS_USER},domain=${NAS_DOMAIN},password=${NAS_PASSWORD},uid=33,gid=33,file_mode=0775,dir_mode=0775,vers=3.0"
