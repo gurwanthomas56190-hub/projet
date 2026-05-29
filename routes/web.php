@@ -72,8 +72,3 @@ Route::middleware('auth')->group(function () {
         Route::post('/mkdir', [FileManagerController::class, 'makeDirectory'])->name('mkdir');
     });
 });
-
-Route::resource('annuaire', AnnuaireController::class)->parameters([
-    'annuaire' => 'samaccountname' // On utilise le samaccountname au lieu de l'ID classique pour chercher dans l'AD
-]);
-
