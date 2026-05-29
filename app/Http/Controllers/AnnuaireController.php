@@ -12,33 +12,24 @@ class AnnuaireController extends Controller
 {
     public function index()
     {
-        // 1. On récupère tous les utilisateurs de l'Active Directory
         $tousLesUtilisateurs = LdapUser::get();
         
-        // 2. On vérifie si l'utilisateur connecté est l'admin (par son samaccountname ou via la Gate)
         $isAdmin = Auth::user() && (
             strtolower(Auth::user()->getFirstAttribute('samaccountname')) === 'administrateur' || 
             Gate::allows('gerer-annuaire')
         );
 
-        // 3. Si ce n'est PAS un admin, on applique le filtre d'exclusion des comptes systèmes
         if (!$isAdmin) {
             $users = $tousLesUtilisateurs->reject(function ($user) {
                 $samaccountname = strtolower($user->getFirstAttribute('samaccountname'));
                 
                 $comptesExclus = [
-                    'krbtgt', 
-                    'guest', 
-                    'invité', 
-                    'defaultaccount', 
-                    'wdagutilityaccount', 
-                    'srv_intranet'
+                    'krbtgt', 'guest', 'invité', 'defaultaccount', 'wdagutilityaccount', 'srv_intranet'
                 ];
                 
                 return in_array($samaccountname, $comptesExclus);
             });
         } else {
-            // Si c'est l'admin, on lui donne la collection complète sans aucun filtre
             $users = $tousLesUtilisateurs;
         }
         
@@ -55,67 +46,67 @@ class AnnuaireController extends Controller
     {
         Gate::authorize('gerer-annuaire');
         
-        // 1. Récupération et nettoyage des données de base
-        $nom = str_replace(' ', '', $request->input('nom'));
-        $prenom = str_replace(' ', '', $request->input('prenom'));
+        // 1. Récupération des informations utilisateur (Équivalent des Read-Host)
+        $nom = trim($request->input('nom'));
+        $prenom = trim($request->input('prenom'));
         $ville = $request->input('ville');
         $service = $request->input('service');
+        $adresse = $request->input('adresse');
+        $telephone = $request->input('telephone');
 
-        // 2. Reproduction exacte des variables du script PowerShell
-        $login = strtolower($nom . '.' . $prenom);
-        $email = $login . '@silvadec.com';
-        $upn = $login . '@silvadec.local';
-        $profilPath = "\\\\192.168.2.101\\Profils$\\" . $login;
-        
-        // L'arborescence dynamique (Attention à ce que ces OU existent bien dans Windows !)
+        // 2. Construction des variables (Copie exacte du script PowerShell)
+        $login = $nom . '.' . $prenom;
+        $email = $nom . '.' . $prenom . '@silvadec.com';
+        $domaine = 'silvadec.local';
+        $profilPath = "\\\\192.168.2.101\\Profils$\\%" . $login . "%";
         $ouPath = "OU={$service},OU={$ville},OU=Silvadec,DC=silvadec,DC=local";
+        $groupeName = "GRP_" . $service;
 
         // 3. Sécurité : Vérification d'existence
         $existingUser = LdapUser::where('samaccountname', $login)->first();
         if ($existingUser) {
             return redirect()->back()
                 ->withInput()
-                ->withErrors(['samaccountname' => "Le compte {$login} existe déjà."]);
+                ->withErrors(['samaccountname' => "Le compte {$login} existe déjà dans l'Active Directory."]);
         }
         
-        // 4. Création de l'utilisateur
+        // 4. Création de l'utilisateur (Équivalent de New-ADUser)
         $user = new LdapUser();
-        $user->cn = $nom . ' ' . $prenom; // Le script PS met "$Nom $Prenom"
-        $user->givenname = $prenom;
-        $user->sn = $nom;
-        $user->samaccountname = $login;
-        $user->userprincipalname = $upn;
-        $user->mail = $email;
-        $user->profilepath = $profilPath;
+        $user->cn = $nom . ' ' . $prenom;       // -Name "$Nom $Prenom"
+        $user->givenname = $prenom;             // -GivenName $Prenom
+        $user->sn = $nom;                       // -Surname $Nom
+        $user->samaccountname = $login;         // -SamAccountName $Login
+        $user->userprincipalname = $login . '@' . $domaine; // -UserPrincipalName
+        $user->mail = $email;                   // -EmailAddress $Email
+        $user->profilepath = $profilPath;       // -ProfilePath $ProfilPath
         
-        if ($request->filled('telephone')) {
-            $user->telephonenumber = $request->input('telephone');
+        // Mots de passe et activation
+        $user->unicodepwd = 'Temp1234!';
+        $user->pwdlastset = 0;                  // -ChangePasswordAtLogon $true
+        $user->useraccountcontrol = 512;        // -Enabled $true
+        
+        // (Équivalent de Set-ADUser -StreetAddress et -Replace @{telephoneNumber})
+        if (!empty($adresse)) {
+            $user->streetaddress = $adresse;
         }
-        if ($request->filled('adresse')) {
-            $user->streetaddress = $request->input('adresse');
+        if (!empty($telephone)) {
+            $user->telephonenumber = $telephone;
         }
 
-        // 5. Configuration du mot de passe et des règles du compte
-        $user->unicodepwd = 'Temp1234!';
-        $user->pwdlastset = 0; // "ChangePasswordAtLogon = $true"
-        $user->useraccountcontrol = 512; // "Enabled = $true" (Compte Normal activé)
-        
-        // On indique à Laravel dans quel dossier placer ce compte
+        // Affectation de l'OU de destination (Équivalent de -Path $OU)
         $user->inside($ouPath);
         
         try {
+            // Sauvegarde dans l'AD
             $user->save();
 
-            // 6. Ajout automatique au groupe de sécurité (ex: GRP_Informatique)
-            $groupeName = "GRP_" . $service;
+            // 5. Ajout au groupe (Équivalent de Add-ADGroupMember)
             $groupe = LdapGroup::where('cn', $groupeName)->first();
-            
             if ($groupe) {
-                // Si le groupe existe sur Windows, on ajoute le membre
                 $groupe->members()->attach($user);
             }
             
-            return redirect()->route('annuaire.index')->with('success', "Employé ajouté avec succès. Il a été placé dans $ville > $service avec le mot de passe Temp1234!");
+            return redirect()->route('annuaire.index')->with('success', "Utilisateur créé avec succès ! Créé dans $ouPath et ajouté au groupe $groupeName.");
 
         } catch (\Exception $e) {
             return redirect()->back()
@@ -127,7 +118,6 @@ class AnnuaireController extends Controller
     public function edit($samaccountname)
     {
         Gate::authorize('gerer-annuaire');
-        
         $employe = LdapUser::where('samaccountname', $samaccountname)->firstOrFail();
         return view('annuaire_edit', compact('employe'));
     }
@@ -137,29 +127,52 @@ class AnnuaireController extends Controller
         Gate::authorize('gerer-annuaire');
         
         $user = LdapUser::where('samaccountname', $samaccountname)->firstOrFail();
-        $user->sn = $request->input('nom');
-        $user->givenname = $request->input('prenom');
-        $user->cn = $request->input('prenom') . ' ' . $request->input('nom');
         
-        if($request->filled('telephone')) {
-            $user->telephonenumber = $request->input('telephone');
+        $nouveauPrenom = $request->input('prenom');
+        $nouveauNom = $request->input('nom');
+        $nouveauCn = $nouveauNom . ' ' . $nouveauPrenom; // Garde la logique Nom Prenom
+
+        try {
+            // Renommage LDAP si le nom complet change
+            if ($user->getFirstAttribute('cn') !== $nouveauCn) {
+                $user->rename($nouveauCn);
+            }
+
+            $user->sn = $nouveauNom;
+            $user->givenname = $nouveauPrenom;
+            
+            if($request->filled('telephone')) {
+                $user->telephonenumber = $request->input('telephone');
+            } else {
+                $user->removeAttribute('telephonenumber');
+            }
+            
+            if($request->filled('email')) {
+                $user->mail = $request->input('email');
+            } else {
+                $user->removeAttribute('mail');
+            }
+            
+            $user->save();
+            return redirect()->route('annuaire.index')->with('success', 'Employé mis à jour avec succès dans l\'Active Directory.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['erreur_ldap' => 'Mise à jour refusée par Active Directory. ERREUR : ' . $e->getMessage()]);
         }
-        if($request->filled('email')) {
-            $user->mail = $request->input('email');
-        }
-        
-        $user->save();
-        
-        return redirect()->route('annuaire.index')->with('success', 'Employé mis à jour dans l\'Active Directory.');
     }
 
     public function destroy($samaccountname)
     {
         Gate::authorize('gerer-annuaire');
         
-        $user = LdapUser::where('samaccountname', $samaccountname)->firstOrFail();
-        $user->delete();
-        
-        return redirect()->route('annuaire.index')->with('success', 'Employé supprimé de l\'Active Directory.');
+        try {
+            $user = LdapUser::where('samaccountname', $samaccountname)->firstOrFail();
+            $user->delete();
+            return redirect()->route('annuaire.index')->with('success', 'Employé supprimé de l\'Active Directory.');
+        } catch (\Exception $e) {
+            return redirect()->route('annuaire.index')->withErrors(['erreur_ldap' => 'Impossible de supprimer l\'utilisateur : ' . $e->getMessage()]);
+        }
     }
 }
