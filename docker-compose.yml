@@ -28,7 +28,8 @@ networks:
   laravel_network:
     driver: bridge
 
-olumes:
+
+volumes:
   nas_share:
     driver_opts:
       type: cifs
