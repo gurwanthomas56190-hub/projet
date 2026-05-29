@@ -14,22 +14,36 @@ class AnnuaireController extends Controller
     {
         $tousLesUtilisateurs = LdapUser::get();
         
-        // 1. Liste des comptes systèmes et admins à CACHER de l'annuaire
-        $comptesExclus = [
-            'krbtgt', 
-            'guest', 
-            'invité', 
-            'defaultaccount', 
-            'wdagutilityaccount', 
-            'srv_intranet',
-            'administrateur' // <-- L'administrateur est maintenant caché de la liste !
-        ];
+        // On vérifie si l'utilisateur connecté est un administrateur
+        $isAdmin = Auth::user() && (
+            strtolower(Auth::user()->getFirstAttribute('samaccountname')) === 'administrateur' || 
+            Gate::allows('gerer-annuaire')
+        );
 
-        // 2. On filtre la liste pour n'avoir QUE les vrais employés
-        $users = $tousLesUtilisateurs->reject(function ($user) use ($comptesExclus) {
-            $samaccountname = strtolower($user->getFirstAttribute('samaccountname') ?? '');
-            return in_array($samaccountname, $comptesExclus);
-        });
+        if (!$isAdmin) {
+            // ==========================================
+            // VUE EMPLOYÉ : On cache les comptes techniques et l'admin
+            // ==========================================
+            $comptesExclus = [
+                'krbtgt', 
+                'guest', 
+                'invité', 
+                'defaultaccount', 
+                'wdagutilityaccount', 
+                'srv_intranet',
+                'administrateur'
+            ];
+            
+            $users = $tousLesUtilisateurs->reject(function ($user) use ($comptesExclus) {
+                $samaccountname = strtolower($user->getFirstAttribute('samaccountname') ?? '');
+                return in_array($samaccountname, $comptesExclus);
+            });
+        } else {
+            // ==========================================
+            // VUE ADMINISTRATEUR : Il voit absolument tout le monde
+            // ==========================================
+            $users = $tousLesUtilisateurs;
+        }
         
         return view('annuaire', compact('users'));
     }
