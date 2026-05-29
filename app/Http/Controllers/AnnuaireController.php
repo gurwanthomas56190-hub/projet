@@ -14,24 +14,22 @@ class AnnuaireController extends Controller
     {
         $tousLesUtilisateurs = LdapUser::get();
         
-        $isAdmin = Auth::user() && (
-            strtolower(Auth::user()->getFirstAttribute('samaccountname')) === 'administrateur' || 
-            Gate::allows('gerer-annuaire')
-        );
+        // 1. Liste des comptes systèmes et admins à CACHER de l'annuaire
+        $comptesExclus = [
+            'krbtgt', 
+            'guest', 
+            'invité', 
+            'defaultaccount', 
+            'wdagutilityaccount', 
+            'srv_intranet',
+            'administrateur' // <-- L'administrateur est maintenant caché de la liste !
+        ];
 
-        if (!$isAdmin) {
-            $users = $tousLesUtilisateurs->reject(function ($user) {
-                $samaccountname = strtolower($user->getFirstAttribute('samaccountname'));
-                
-                $comptesExclus = [
-                    'krbtgt', 'guest', 'invité', 'defaultaccount', 'wdagutilityaccount', 'srv_intranet'
-                ];
-                
-                return in_array($samaccountname, $comptesExclus);
-            });
-        } else {
-            $users = $tousLesUtilisateurs;
-        }
+        // 2. On filtre la liste pour n'avoir QUE les vrais employés
+        $users = $tousLesUtilisateurs->reject(function ($user) use ($comptesExclus) {
+            $samaccountname = strtolower($user->getFirstAttribute('samaccountname') ?? '');
+            return in_array($samaccountname, $comptesExclus);
+        });
         
         return view('annuaire', compact('users'));
     }
@@ -46,7 +44,6 @@ class AnnuaireController extends Controller
     {
         Gate::authorize('gerer-annuaire');
         
-        // 1. Récupération des informations utilisateur
         $nom = trim($request->input('nom'));
         $prenom = trim($request->input('prenom'));
         $ville = $request->input('ville');
@@ -54,7 +51,6 @@ class AnnuaireController extends Controller
         $adresse = $request->input('adresse');
         $telephone = $request->input('telephone');
 
-        // 2. Construction des variables (Copie exacte du script PowerShell)
         $login = $nom . '.' . $prenom;
         $email = $nom . '.' . $prenom . '@silvadec.com';
         $domaine = 'silvadec.local';
@@ -62,7 +58,6 @@ class AnnuaireController extends Controller
         $ouPath = "OU={$service},OU={$ville},OU=Silvadec,DC=silvadec,DC=local";
         $groupeName = "GRP_" . $service;
 
-        // 3. Sécurité : Vérification d'existence
         $existingUser = LdapUser::where('samaccountname', $login)->first();
         if ($existingUser) {
             return redirect()->back()
@@ -70,15 +65,14 @@ class AnnuaireController extends Controller
                 ->withErrors(['samaccountname' => "Le compte {$login} existe déjà dans l'Active Directory."]);
         }
         
-        // 4. Création de l'utilisateur (Attributs de base)
         $user = new LdapUser();
-        $user->cn = $nom . ' ' . $prenom;       // -Name "$Nom $Prenom"
-        $user->givenname = $prenom;             // -GivenName $Prenom
-        $user->sn = $nom;                       // -Surname $Nom
-        $user->samaccountname = $login;         // -SamAccountName $Login
-        $user->userprincipalname = $login . '@' . $domaine; // -UserPrincipalName
-        $user->mail = $email;                   // -EmailAddress $Email
-        $user->profilepath = $profilPath;       // -ProfilePath $ProfilPath
+        $user->cn = $nom . ' ' . $prenom;
+        $user->givenname = $prenom;
+        $user->sn = $nom;
+        $user->samaccountname = $login;
+        $user->userprincipalname = $login . '@' . $domaine;
+        $user->mail = $email;
+        $user->profilepath = $profilPath;
         
         if (!empty($adresse)) {
             $user->streetaddress = $adresse;
@@ -87,34 +81,27 @@ class AnnuaireController extends Controller
             $user->telephonenumber = $telephone;
         }
 
-        // On indique le chemin de destination (OU)
         $user->inside($ouPath);
         
         try {
-            // ==============================================================
-            // DÉPLACÉ ICI : Configuration du mot de passe et du compte.
-            // Si LDAPS n'est pas encore actif, l'erreur sera capturée proprement !
-            // ==============================================================
+            // LDAPS est ACTIF : On configure le mot de passe !
             $user->unicodepwd = 'Temp1234!';
-            $user->pwdlastset = 0;                  // -ChangePasswordAtLogon $true
-            $user->useraccountcontrol = 512;        // -Enabled $true
+            $user->pwdlastset = 0;                  // Forcer le changement à la 1ere connexion
+            $user->useraccountcontrol = 512;        // Compte Activé
 
-            // Sauvegarde dans l'AD
             $user->save();
 
-            // 5. Ajout au groupe (Équivalent de Add-ADGroupMember)
             $groupe = LdapGroup::where('cn', $groupeName)->first();
             if ($groupe) {
                 $groupe->members()->attach($user);
             }
             
-            return redirect()->route('annuaire.index')->with('success', "Utilisateur créé avec succès ! Créé dans $ouPath et ajouté au groupe $groupeName.");
+            return redirect()->route('annuaire.index')->with('success', "Utilisateur créé avec succès ! Créé dans $ouPath et ajouté au groupe $groupeName avec le mot de passe Temp1234!");
 
         } catch (\Exception $e) {
-            // En cas de refus du serveur LDAP (ex: erreur SSL pour le mot de passe)
             return redirect()->back()
                 ->withInput()
-                ->withErrors(['erreur_ldap' => 'Création refusée par Active Directory. ERREUR : ' . $e->getMessage()]);
+                ->withErrors(['erreur_ldap' => 'Création refusée par Active Directory (Vérifiez que le LDAPS fonctionne côté Windows). ERREUR : ' . $e->getMessage()]);
         }
     }
 
@@ -136,7 +123,6 @@ class AnnuaireController extends Controller
         $nouveauCn = $nouveauNom . ' ' . $nouveauPrenom;
 
         try {
-            // Renommage LDAP si le nom complet change
             if ($user->getFirstAttribute('cn') !== $nouveauCn) {
                 $user->rename($nouveauCn);
             }
