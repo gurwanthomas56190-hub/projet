@@ -46,7 +46,7 @@ class AnnuaireController extends Controller
     {
         Gate::authorize('gerer-annuaire');
         
-        // 1. Récupération des informations utilisateur (Équivalent des Read-Host)
+        // 1. Récupération des informations utilisateur
         $nom = trim($request->input('nom'));
         $prenom = trim($request->input('prenom'));
         $ville = $request->input('ville');
@@ -70,7 +70,7 @@ class AnnuaireController extends Controller
                 ->withErrors(['samaccountname' => "Le compte {$login} existe déjà dans l'Active Directory."]);
         }
         
-        // 4. Création de l'utilisateur (Équivalent de New-ADUser)
+        // 4. Création de l'utilisateur (Attributs de base)
         $user = new LdapUser();
         $user->cn = $nom . ' ' . $prenom;       // -Name "$Nom $Prenom"
         $user->givenname = $prenom;             // -GivenName $Prenom
@@ -80,12 +80,6 @@ class AnnuaireController extends Controller
         $user->mail = $email;                   // -EmailAddress $Email
         $user->profilepath = $profilPath;       // -ProfilePath $ProfilPath
         
-        // Mots de passe et activation
-        $user->unicodepwd = 'Temp1234!';
-        $user->pwdlastset = 0;                  // -ChangePasswordAtLogon $true
-        $user->useraccountcontrol = 512;        // -Enabled $true
-        
-        // (Équivalent de Set-ADUser -StreetAddress et -Replace @{telephoneNumber})
         if (!empty($adresse)) {
             $user->streetaddress = $adresse;
         }
@@ -93,10 +87,18 @@ class AnnuaireController extends Controller
             $user->telephonenumber = $telephone;
         }
 
-        // Affectation de l'OU de destination (Équivalent de -Path $OU)
+        // On indique le chemin de destination (OU)
         $user->inside($ouPath);
         
         try {
+            // ==============================================================
+            // DÉPLACÉ ICI : Configuration du mot de passe et du compte.
+            // Si LDAPS n'est pas encore actif, l'erreur sera capturée proprement !
+            // ==============================================================
+            $user->unicodepwd = 'Temp1234!';
+            $user->pwdlastset = 0;                  // -ChangePasswordAtLogon $true
+            $user->useraccountcontrol = 512;        // -Enabled $true
+
             // Sauvegarde dans l'AD
             $user->save();
 
@@ -109,6 +111,7 @@ class AnnuaireController extends Controller
             return redirect()->route('annuaire.index')->with('success', "Utilisateur créé avec succès ! Créé dans $ouPath et ajouté au groupe $groupeName.");
 
         } catch (\Exception $e) {
+            // En cas de refus du serveur LDAP (ex: erreur SSL pour le mot de passe)
             return redirect()->back()
                 ->withInput()
                 ->withErrors(['erreur_ldap' => 'Création refusée par Active Directory. ERREUR : ' . $e->getMessage()]);
@@ -130,7 +133,7 @@ class AnnuaireController extends Controller
         
         $nouveauPrenom = $request->input('prenom');
         $nouveauNom = $request->input('nom');
-        $nouveauCn = $nouveauNom . ' ' . $nouveauPrenom; // Garde la logique Nom Prenom
+        $nouveauCn = $nouveauNom . ' ' . $nouveauPrenom;
 
         try {
             // Renommage LDAP si le nom complet change
