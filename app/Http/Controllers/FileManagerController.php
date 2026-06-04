@@ -9,37 +9,40 @@ use Illuminate\Support\Facades\Auth;
 class FileManagerController extends Controller
 {
     public function index(Request $request)
-    {
-        // Récupération de l'utilisateur authentifié
-        $user = Auth::user();
+{
+    $user = Auth::user();
+    // Le dossier racine autorisé pour l'utilisateur
+    $baseFolder = $user->service ?? 'Administration'; 
 
-        // Définition du dossier de base selon le service de l'utilisateur
-        // On suppose que l'objet user a une propriété 'service'
-        $baseFolder = $user->service ?? 'Administration'; 
+    // On récupère le chemin. Si l'utilisateur est à la racine de son service, 
+    // on ne doit pas rajouter le nom du dossier si on est déjà dedans.
+    $requestedPath = $request->query('path', $baseFolder);
 
-        // Récupération du chemin demandé via l'URL, sinon racine du service
-        $requestedPath = $request->query('path', $baseFolder);
-
-        // Sécurisation basique pour éviter de sortir du dossier racine
-        // Note : Dans un environnement réel, validez strictement que $requestedPath commence par $baseFolder
-        $safeRelativePath = str_replace(['../', '..'], '', $requestedPath);
-
-        try {
-            // Récupération des fichiers et dossiers
-            // On utilise le disque 'nas' défini dans config/filesystems.php
-            $files = Storage::disk('nas')->files($safeRelativePath);
-            $directories = Storage::disk('nas')->directories($safeRelativePath);
-
-            return view('filemanager', [
-                'files' => $files,
-                'directories' => $directories,
-                'currentPath' => $safeRelativePath,
-                'baseFolder' => $baseFolder
-            ]);
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Impossible d\'accéder au dossier : ' . $e->getMessage()]);
-        }
+    // Nettoyage pour empêcher de remonter plus haut que le dossier racine
+    $safeRelativePath = str_replace(['../', '..'], '', $requestedPath);
+    
+    // Si le chemin est vide ou égal au service, on force la lecture du dossier du service
+    if ($safeRelativePath === $baseFolder) {
+        $path = $baseFolder;
+    } else {
+        $path = $safeRelativePath;
     }
+
+    try {
+        // On lit le contenu du dossier
+        $files = Storage::disk('nas')->files($path);
+        $directories = Storage::disk('nas')->directories($path);
+
+        return view('filemanager', [
+            'files' => $files,
+            'directories' => $directories,
+            'currentPath' => $path,
+            'baseFolder' => $baseFolder
+        ]);
+    } catch (\Exception $e) {
+        return back()->withErrors(['error' => 'Erreur : ' . $e->getMessage()]);
+    }
+}
 
     public function download($path)
     {
