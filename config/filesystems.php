@@ -61,7 +61,7 @@ return [
         ],
         'nas' => [
             'driver' => 'local',
-            'root' => '/mnt/win_share',
+            'root' => env('NAS_ROOT_PATH', '/mnt/win_share'),
             'throw' => true,
         ],
 
