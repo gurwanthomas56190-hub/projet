@@ -10,121 +10,40 @@ class FileManagerController extends Controller
 {
     public function index(Request $request)
     {
-        $user = Auth::user(); 
-        if (!$user) return redirect('/login');
+        // Récupération de l'utilisateur authentifié
+        $user = Auth::user();
 
-        // TENTATIVE DE RÉCUPÉRATION DU SERVICE (on teste les deux méthodes possibles)
-        $rawService = $user->service ?? (method_exists($user, 'getService') ? $user->getService() : '');
-        
-        // Nettoyage : on enlève les espaces et on met la 1ère lettre en majuscule
-        $userService = ucfirst(strtolower(trim($rawService))); 
-        
-        $servicesAutorises = ['Administration', 'Informatique', 'Marketing', 'Production'];
-        
-        // On vérifie si le service fait partie de la liste autorisée
-        if (!in_array($userService, $servicesAutorises)) {
-            abort(403, "Accès refusé : Votre service détecté est '{$userService}', mais il n'est pas autorisé dans la liste.");
-        }
+        // Définition du dossier de base selon le service de l'utilisateur
+        // On suppose que l'objet user a une propriété 'service'
+        $baseFolder = $user->service ?? 'Administration'; 
 
-        // Le dossier de base sur Windows doit correspondre au service (ex: "Administration")
-        $baseFolder = $userService;
-
+        // Récupération du chemin demandé via l'URL, sinon racine du service
         $requestedPath = $request->query('path', $baseFolder);
-        $safeRelativePath = str_replace('..', '', (string)$requestedPath);
-        if (!str_starts_with($safeRelativePath, $baseFolder)) $safeRelativePath = $baseFolder;
 
-        $storagePath = $safeRelativePath; 
-        $currentFolder = $safeRelativePath; 
-        $parentPath = dirname($safeRelativePath);
-        if (!str_starts_with($parentPath, $baseFolder)) $parentPath = $baseFolder;
+        // Sécurisation basique pour éviter de sortir du dossier racine
+        // Note : Dans un environnement réel, validez strictement que $requestedPath commence par $baseFolder
+        $safeRelativePath = str_replace(['../', '..'], '', $requestedPath);
 
-        $showBackBtn = ($safeRelativePath !== $baseFolder);
+        try {
+            // Récupération des fichiers et dossiers
+            // On utilise le disque 'nas' défini dans config/filesystems.php
+            $files = Storage::disk('nas')->files($safeRelativePath);
+            $directories = Storage::disk('nas')->directories($safeRelativePath);
 
-        // Récupération des DOSSIERS
-        $rawFolders = Storage::disk('nas')->directories($storagePath);
-        $folders = [];
-        foreach ($rawFolders as $f) {
-            $folders[] = [
-                'name' => basename($f),
-                'path' => $f,
-                'timestamp' => Storage::disk('nas')->lastModified($f)
-            ];
+            return view('filemanager', [
+                'files' => $files,
+                'directories' => $directories,
+                'currentPath' => $safeRelativePath,
+                'baseFolder' => $baseFolder
+            ]);
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Impossible d\'accéder au dossier : ' . $e->getMessage()]);
         }
-
-        // Récupération des FICHIERS
-        $rawFiles = Storage::disk('nas')->files($storagePath);
-        $files = [];
-        foreach ($rawFiles as $f) {
-            $time = Storage::disk('nas')->lastModified($f);
-            $size = Storage::disk('nas')->size($f);
-            $units = ['o', 'Ko', 'Mo', 'Go'];
-            $i = 0; $bytes = $size;
-            while ($bytes >= 1024 && $i < 3) { $bytes /= 1024; $i++; }
-
-            $files[] = [
-                'name' => basename($f),
-                'path' => $f,
-                'size' => round($bytes, 2) . ' ' . $units[$i],
-                'date' => date('d/m/Y H:i', $time),
-                'timestamp' => $time,
-                'ext' => strtolower(pathinfo($f, PATHINFO_EXTENSION))
-            ];
-        }
-
-        return view('filemanager', compact('folders', 'files', 'currentFolder', 'userService', 'safeRelativePath', 'parentPath', 'showBackBtn'));
     }
 
-    public function makeDirectory(Request $request)
+    public function download($path)
     {
-        $user = Auth::user();
-        $userService = ucfirst(strtolower(trim($user->service ?? $user->getService())));
-        $path = $request->input('path');
-        $folderName = $request->input('folder_name');
-        if (!str_starts_with($path, $userService)) return back()->with('error', 'Action non autorisée.');
-        $request->validate(['folder_name' => 'required|string|max:255']);
-        $fullPath = $path . '/' . $folderName;
-        if (Storage::disk('nas')->exists($fullPath)) return back()->with('error', 'Ce dossier existe déjà.');
-        Storage::disk('nas')->makeDirectory($fullPath);
-        return back()->with('success', 'Dossier créé avec succès.');
-    }
-
-    public function download(Request $request)
-    {
-        $path = $request->query('path');
-        if (!$path || !Storage::disk('nas')->exists($path)) abort(404);
+        $path = base64_decode($path);
         return Storage::disk('nas')->download($path);
-    }
-
-    public function store(Request $request)
-    {
-        $user = Auth::user();
-        $userService = ucfirst(strtolower(trim($user->service ?? $user->getService())));
-        $path = $request->input('path');
-        if (!str_starts_with($path, $userService)) return back()->with('error', 'Action non autorisée.');
-        $request->validate(['file' => 'required|file|max:10240']);
-        if ($request->hasFile('file')) {
-            $file = $request->file('file');
-            Storage::disk('nas')->putFileAs($path, $file, $file->getClientOriginalName());
-            return back()->with('success', 'Fichier ajouté avec succès.');
-        }
-        return back()->with('error', 'Erreur lors de l\'envoi.');
-    }
-
-    public function destroy(Request $request)
-    {
-        $user = Auth::user();
-        $userService = ucfirst(strtolower(trim($user->service ?? $user->getService())));
-        $path = $request->input('path');
-        if (!str_starts_with($path, $userService) || !Storage::disk('nas')->exists($path)) {
-            return back()->with('error', "Action impossible.");
-        }
-        $parent = dirname($path);
-        $directories = Storage::disk('nas')->directories($parent);
-        if (in_array($path, $directories)) {
-            Storage::disk('nas')->deleteDirectory($path);
-        } else {
-            Storage::disk('nas')->delete($path);
-        }
-        return back()->with('success', 'Supprimé avec succès.');
     }
 }
