@@ -4,7 +4,7 @@ services:
     container_name: laravel_app
     volumes:
       - .:/var/www
-      - /mnt/partage_windows:/mnt/win_share
+      - /mnt/win_share:/mnt/win_share
     env_file:
       - .env
     networks:
