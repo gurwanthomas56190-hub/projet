@@ -14,7 +14,7 @@ services:
     image: nginx:alpine
     container_name: laravel_web
     ports:
-      - "80:80"
+      - "127.0.0.1:8080:80"
     volumes:
       - .:/var/www
       - ./docker/nginx/conf.d:/etc/nginx/conf.d
@@ -22,6 +22,19 @@ services:
       - laravel_network
     depends_on:
       - app
+
+  sso_proxy:
+    build: ./docker/apache
+    container_name: laravel_sso
+    ports:
+      - "80:80"
+    volumes:
+      - /etc/krb5.keytab:/etc/krb5.keytab:ro
+      - /etc/krb5.conf:/etc/krb5.conf:ro
+    networks:
+      - laravel_network
+    depends_on:
+      - webserver
 
 networks:
   laravel_network:
