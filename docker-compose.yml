@@ -29,7 +29,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - /etc/krb5.keytab:/etc/krb5.keytab:ro
+      - ./intranet.keytab:/etc/krb5.keytab:ro
       - /etc/krb5.conf:/etc/krb5.conf:ro
     networks:
       - laravel_network
