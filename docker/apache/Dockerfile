@@ -7,6 +7,10 @@ RUN apt-get update && apt-get install -y \
     && a2enmod proxy proxy_http headers auth_gssapi rewrite \
     && apt-get clean
 
+# ... (votre config actuelle)
+RUN a2enmod proxy proxy_http headers auth_gssapi rewrite ssl # <--- AJOUTER ssl
+# ...    
+
 # Rediriger les logs pour les voir avec "docker compose logs"
 RUN ln -sf /dev/stdout /var/log/apache2/access.log \
     && ln -sf /dev/stderr /var/log/apache2/error.log

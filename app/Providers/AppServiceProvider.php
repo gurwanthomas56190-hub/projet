@@ -15,6 +15,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if ($this->app->environment('production')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
         Gate::define('gerer-annuaire', function ($user) {
             $username = is_array($user->samaccountname) ? $user->samaccountname[0] : $user->samaccountname;
 

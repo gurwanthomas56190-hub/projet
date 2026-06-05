@@ -28,9 +28,11 @@ services:
     container_name: laravel_sso
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./intranet.keytab:/etc/krb5.keytab:ro
       - /etc/krb5.conf:/etc/krb5.conf:ro
+      - ./docker/apache/ssl:/etc/apache2/ssl:ro #
     networks:
       - laravel_network
     depends_on:
