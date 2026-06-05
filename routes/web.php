@@ -16,6 +16,12 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+Route::get('/debug-sso', function (\Illuminate\Http\Request $request) {
+    return [
+        'X-Remote-User' => $request->header('X-Remote-User'),
+        'tous_les_headers' => $request->headers->all(),
+    ];
+});
 // --- La Porte VIP Kerberos (Doit être libre d'accès !) ---
 Route::get('/sso-login', function (\Illuminate\Http\Request $request) {
     $remoteUser = $request->header('X-Remote-User');
