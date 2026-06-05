@@ -23,11 +23,6 @@ services:
     depends_on:
       - app
 
-network:
-  version: 2
-  ethernets:
-    ens18:
-      dhcp4: true
-      nameservers:
-        addresses: [192.168.2.101]
-        search: [silvadec.local]
+networks:
+  laravel_network:
+    driver: bridge
