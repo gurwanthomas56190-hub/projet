@@ -1,17 +1,22 @@
 FROM php:8.4-fpm-bookworm
 
-# C'est CETTE ligne qui manquait dans ton précédent build :
+# On installe UNIQUEMENT les dépendances nécessaires à PHP (et notamment libldap2-dev pour Active Directory)
 RUN apt-get update && apt-get install -y \
-    apache2 \
-    libapache2-mod-auth-gssapi \
-    krb5-user \
-    && a2enmod proxy proxy_http headers auth_gssapi rewrite ssl \
+    libldap2-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    && docker-php-ext-configure ldap \
+    && docker-php-ext-install ldap zip pdo pdo_mysql \
     && apt-get clean
 
 WORKDIR /var/www
 COPY . .
 
+# Droits pour Laravel
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+# Configuration pour accepter les certificats LDAP locaux (très important pour l'AD Silvadec)
 RUN mkdir -p /etc/ldap && echo "TLS_REQCERT never" >> /etc/ldap/ldap.conf
 
 COPY docker-entrypoint.sh /usr/local/bin/
