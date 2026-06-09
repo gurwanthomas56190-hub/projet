@@ -5,18 +5,39 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate; // <-- 1. Ajout indispensable pour vérifier l'admin
+use Illuminate\Support\Facades\Gate;
+use App\Ldap\User as LdapUser; // <-- IMPORT TRÈS IMPORTANT
 
 class FileManagerController extends Controller
 {
-    // --- NOUVELLE MÉTHODE ---
+    // --- NOUVELLE FONCTION ---
+    // Elle fait le pont entre ton utilisateur Laravel et ton Active Directory
+    private function getUserService()
+    {
+        $user = Auth::user();
+        
+        // On récupère le login (LdapRecord l'injecte souvent dynamiquement, ou il est dans name)
+        $username = $user->samaccountname ?? $user->name;
+        if (is_array($username)) $username = $username[0];
+
+        // On va chercher l'utilisateur dans l'AD
+        $ldapUser = LdapUser::where('samaccountname', $username)->first();
+
+        if ($ldapUser) {
+            // On utilise TA méthode getService() que tu as créée dans app/Ldap/User.php
+            $service = $ldapUser->getService(); 
+            return $service !== 'Non renseigné' ? trim($service) : 'General';
+        }
+
+        return 'General';
+    }
+
     // Sécurité : Vérifie si l'utilisateur a le droit d'agir sur ce chemin
     private function aLeDroit($path)
     {
         if (Gate::allows('gerer-annuaire')) return true; // L'admin a tous les droits
         
-        $user = Auth::user();
-        $userService = ucfirst(strtolower(trim($user->service ?? 'general')));
+        $userService = $this->getUserService(); // <-- Utilisation de la méthode
         // L'employé ne peut agir que si le chemin commence par le nom de son service
         return str_starts_with(str_replace('..', '', $path), $userService);
     }
@@ -28,9 +49,9 @@ class FileManagerController extends Controller
 
         // Vérification du rôle et définition de la racine
         $estAdmin = Gate::allows('gerer-annuaire');
-        $userService = ucfirst(strtolower(trim($user->service ?? 'general')));
+        $userService = $this->getUserService(); // <-- Utilisation de la méthode
         
-        // 2. L'admin démarre à la racine du NAS (''), les employés dans leur service
+        // L'admin démarre à la racine du NAS (''), les employés dans leur service
         $baseFolder = $estAdmin ? '' : $userService; 
         
         $path = $request->query('path', $baseFolder);
@@ -66,7 +87,7 @@ class FileManagerController extends Controller
             'folders' => $folders,
             'files' => $files,
             'currentFolder' => $path,
-            'userService' => $baseFolder, // Informe la vue du dossier racine de l'utilisateur
+            'userService' => $baseFolder,
             'safeRelativePath' => $path,
             'parentPath' => $parentPath,
             'showBackBtn' => ($path !== $baseFolder)
@@ -76,7 +97,7 @@ class FileManagerController extends Controller
     public function makeDirectory(Request $request)
     {
         $path = $request->input('path') . '/' . $request->input('folder_name');
-        if (!$this->aLeDroit($path)) return back()->with('error', 'Accès refusé.'); // Sécurité
+        if (!$this->aLeDroit($path)) return back()->with('error', 'Accès refusé.');
         
         Storage::disk('nas')->makeDirectory($path);
         return back()->with('success', 'Dossier créé.');
@@ -85,7 +106,7 @@ class FileManagerController extends Controller
     public function download(Request $request)
     {
         $path = $request->query('path');
-        if (!$this->aLeDroit($path)) return abort(403); // Sécurité
+        if (!$this->aLeDroit($path)) return abort(403);
         
         return Storage::disk('nas')->download($path);
     }
@@ -93,7 +114,7 @@ class FileManagerController extends Controller
     public function store(Request $request)
     {
         $path = $request->input('path');
-        if (!$this->aLeDroit($path)) return back()->with('error', 'Accès refusé.'); // Sécurité
+        if (!$this->aLeDroit($path)) return back()->with('error', 'Accès refusé.');
         
         if ($request->hasFile('file')) {
             $file = $request->file('file');
@@ -105,7 +126,7 @@ class FileManagerController extends Controller
     public function destroy(Request $request)
     {
         $path = $request->input('path');
-        if (!$this->aLeDroit($path)) return back()->with('error', 'Accès refusé.'); // Sécurité
+        if (!$this->aLeDroit($path)) return back()->with('error', 'Accès refusé.');
         
         if (Storage::disk('nas')->directoryExists($path)) {
             Storage::disk('nas')->deleteDirectory($path);
