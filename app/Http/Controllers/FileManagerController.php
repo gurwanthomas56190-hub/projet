@@ -5,28 +5,46 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate; // <-- 1. Ajout indispensable pour vérifier l'admin
 
 class FileManagerController extends Controller
 {
+    // --- NOUVELLE MÉTHODE ---
+    // Sécurité : Vérifie si l'utilisateur a le droit d'agir sur ce chemin
+    private function aLeDroit($path)
+    {
+        if (Gate::allows('gerer-annuaire')) return true; // L'admin a tous les droits
+        
+        $user = Auth::user();
+        $userService = ucfirst(strtolower(trim($user->service ?? 'general')));
+        // L'employé ne peut agir que si le chemin commence par le nom de son service
+        return str_starts_with(str_replace('..', '', $path), $userService);
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();
         if (!$user) return redirect('/login');
 
-        // 1. Définition du service et du chemin
-        $userService = ucfirst(strtolower(trim($user->service )));
-        $path = $request->query('path', $userService);
+        // Vérification du rôle et définition de la racine
+        $estAdmin = Gate::allows('gerer-annuaire');
+        $userService = ucfirst(strtolower(trim($user->service ?? 'general')));
         
-        // Sécurité de base
+        // 2. L'admin démarre à la racine du NAS (''), les employés dans leur service
+        $baseFolder = $estAdmin ? '' : $userService; 
+        
+        $path = $request->query('path', $baseFolder);
+        
+        // Sécurité de navigation
         $path = str_replace('..', '', $path); 
-        if (!str_starts_with($path, $userService)) $path = $userService;
+        if (!$this->aLeDroit($path)) $path = $baseFolder;
 
-        // 2. Formatage des dossiers
+        // Formatage des dossiers
         $folders = collect(Storage::disk('nas')->directories($path))->map(function($f) {
             return ['name' => basename($f), 'path' => $f];
         });
 
-        // 3. Formatage des fichiers (taille calculée simplement en Ko)
+        // Formatage des fichiers
         $files = collect(Storage::disk('nas')->files($path))->map(function($f) {
             $time = Storage::disk('nas')->lastModified($f);
             return [
@@ -38,38 +56,48 @@ class FileManagerController extends Controller
             ];
         });
 
-        // 4. Gestion du bouton "Retour"
+        // Gestion du bouton "Retour"
         $parentPath = dirname($path);
-        if (!str_starts_with($parentPath, $userService)) $parentPath = $userService;
+        if ($parentPath === '.' || $parentPath === '\\') $parentPath = '';
+        
+        if (!$this->aLeDroit($parentPath)) $parentPath = $baseFolder;
 
         return view('filemanager', [
             'folders' => $folders,
             'files' => $files,
             'currentFolder' => $path,
-            'userService' => $userService,
+            'userService' => $baseFolder, // Informe la vue du dossier racine de l'utilisateur
             'safeRelativePath' => $path,
             'parentPath' => $parentPath,
-            'showBackBtn' => ($path !== $userService)
+            'showBackBtn' => ($path !== $baseFolder)
         ]);
     }
 
     public function makeDirectory(Request $request)
     {
         $path = $request->input('path') . '/' . $request->input('folder_name');
+        if (!$this->aLeDroit($path)) return back()->with('error', 'Accès refusé.'); // Sécurité
+        
         Storage::disk('nas')->makeDirectory($path);
         return back()->with('success', 'Dossier créé.');
     }
 
     public function download(Request $request)
     {
-        return Storage::disk('nas')->download($request->query('path'));
+        $path = $request->query('path');
+        if (!$this->aLeDroit($path)) return abort(403); // Sécurité
+        
+        return Storage::disk('nas')->download($path);
     }
 
     public function store(Request $request)
     {
+        $path = $request->input('path');
+        if (!$this->aLeDroit($path)) return back()->with('error', 'Accès refusé.'); // Sécurité
+        
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            Storage::disk('nas')->putFileAs($request->input('path'), $file, $file->getClientOriginalName());
+            Storage::disk('nas')->putFileAs($path, $file, $file->getClientOriginalName());
         }
         return back()->with('success', 'Fichier ajouté.');
     }
@@ -77,7 +105,8 @@ class FileManagerController extends Controller
     public function destroy(Request $request)
     {
         $path = $request->input('path');
-        // Si c'est un dossier, on supprime le dossier, sinon on supprime le fichier
+        if (!$this->aLeDroit($path)) return back()->with('error', 'Accès refusé.'); // Sécurité
+        
         if (Storage::disk('nas')->directoryExists($path)) {
             Storage::disk('nas')->deleteDirectory($path);
         } else {
