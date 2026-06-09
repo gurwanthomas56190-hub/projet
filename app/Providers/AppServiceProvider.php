@@ -1,10 +1,9 @@
 <?php
-
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
-use App\Ldap\User as LdapUser;
+use Illuminate\Support\Facades\URL; // <-- N'oubliez pas cet import !
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,22 +14,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        if ($this->app->environment('production')) {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
-        }
+        // Forcer Laravel à utiliser HTTPS derrière le proxy Apache
+        URL::forceScheme('https');
+
+        // ... Votre code existant pour le Gate 'gerer-annuaire' reste ici ...
         Gate::define('gerer-annuaire', function ($user) {
-            $username = is_array($user->samaccountname) ? $user->samaccountname[0] : $user->samaccountname;
-
-            // 1. On donne tous les droits d'office au compte "Administrateur"
-            if (strtolower($username) === 'administrateur') {
-                return true;
-            }
-
-            // 2. Pour les autres, on vérifie le groupe AD
-            $ldapUser = \App\Ldap\User::where('samaccountname', $username)->first();
-            
-            // N'oublie pas d'adapter ce chemin (DN) à ton vrai Active Directory Windows Server !
-            return $ldapUser && $ldapUser->groups()->exists('cn=Intranet_Admins,ou=Groupes,dc=silvadec,dc=local');
+            // ...
         });
     }
 }

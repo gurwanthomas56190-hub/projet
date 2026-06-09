@@ -1,9 +1,12 @@
 FROM php:8.4-fpm-bookworm
 
 # C'est CETTE ligne qui manquait dans ton précédent build :
-RUN apt-get update && apt-get install -y libldap2-dev \
-    && docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu/ \
-    && docker-php-ext-install ldap
+RUN apt-get update && apt-get install -y \
+    apache2 \
+    libapache2-mod-auth-gssapi \
+    krb5-user \
+    && a2enmod proxy proxy_http headers auth_gssapi rewrite ssl \
+    && apt-get clean
 
 WORKDIR /var/www
 COPY . .
