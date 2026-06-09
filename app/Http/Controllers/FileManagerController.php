@@ -14,7 +14,7 @@ class FileManagerController extends Controller
         if (!$user) return redirect('/login');
 
         // 1. Définition du service et du chemin
-        $userService = ucfirst(strtolower(trim($user->service ?? 'general')));
+        $userService = ucfirst(strtolower(trim($user->service )));
         $path = $request->query('path', $userService);
         
         // Sécurité de base
